@@ -5,7 +5,7 @@
     Fitur:
     - 100% Bebas Enkripsi & Obfuscator (Mudah dibaca & dimodifikasi)
     - Bersih dari Telemetri (ScriptBlox & RScripts dihapus total)
-    - Auto Steal Cage (Instant Teleport ke Cage terdekat/terjauh)
+    - Auto Steal Cage (Jalan kaki natural via Humanoid:MoveTo, bebas teleport)
     - Auto Place & Auto Open Cage
     - Auto Train (Treadmill) & Auto Upgrade Treadmill
     - Auto Tap Speed Boost (Mengklik balon speed boost otomatis)
@@ -13,15 +13,12 @@
     - Auto Buy & Equip Best Trail
     - Auto Claim Daily & Index Rewards
     - Auto Equip Best Pet & Auto Rebirth
-    - QoL Player (WalkSpeed slider & Noclip)
+    - Tanpa modifikasi WalkSpeed (Aman dari deteksi speed)
 ]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
-local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
@@ -58,7 +55,6 @@ local EquipTrailRemote    = getRemote("EquipTrail")
 getgenv().SAP_Settings = {
     -- Auto Steal & Cage
     AutoSteal            = false,
-    InstantTeleport      = true,
     AutoPlaceCage        = true,
     AutoOpenCage         = true,
     
@@ -75,7 +71,6 @@ getgenv().SAP_Settings = {
     AutoRebirth          = false,
     
     -- Player Mods
-    WalkSpeed            = 16,
     Noclip               = false,
 }
 
@@ -94,16 +89,18 @@ local function getMyPlot()
     return nil
 end
 
-local function teleportTo(cframe)
-    if not RootPart then return end
-    if Settings.InstantTeleport then
-        RootPart.CFrame = cframe
-    else
-        local tweenInfo = TweenInfo.new(0.8, Enum.EasingStyle.Linear)
-        local tween = TweenService:Create(RootPart, tweenInfo, {CFrame = cframe})
-        tween:Play()
-        tween.Completed:Wait()
+local function walkTo(targetPos, stopDist, checkActiveFn)
+    stopDist = stopDist or 5
+    if not Humanoid or not RootPart then return false end
+    local startTime = os.clock()
+    while (RootPart.Position - targetPos).Magnitude > stopDist do
+        if checkActiveFn and not checkActiveFn() then return false end
+        if not Humanoid or Humanoid.Health <= 0 then return false end
+        if os.clock() - startTime > 30 then return false end
+        Humanoid:MoveTo(targetPos)
+        task.wait(0.25)
     end
+    return true
 end
 
 -- 1. Auto Claim (Daily, Index, Champion) & Auto Equip Best Loop
@@ -167,13 +164,15 @@ end)
 -- 4. Auto Train (Treadmill) & Auto Tap Boost Loop
 task.spawn(function()
     while task.wait(1) do
-        if Settings.AutoTrain then
+        if Settings.AutoTrain and not Settings.AutoSteal then
             local myPlot = getMyPlot()
             if myPlot then
                 local treadmill = myPlot:FindFirstChild("Treadmill") or myPlot:FindFirstChildWhichIsA("Model", true)
                 local targetPart = treadmill and (treadmill:FindFirstChild("HumanoidRootPart") or treadmill:FindFirstChild("Base") or treadmill.PrimaryPart)
                 if targetPart and (RootPart.Position - targetPart.Position).Magnitude > 6 then
-                    teleportTo(targetPart.CFrame + Vector3.new(0, 3, 0))
+                    walkTo(targetPart.Position, 5, function()
+                        return Settings.AutoTrain and not Settings.AutoSteal
+                    end)
                 end
             end
             if Settings.AutoUpgradeTreadmill and UpgradeTreadmill then
@@ -205,7 +204,7 @@ task.spawn(function()
     end
 end)
 
--- 5. Auto Steal Cage Loop
+-- 5. Auto Steal Cage Loop (Natural Walking)
 task.spawn(function()
     while task.wait(0.6) do
         if Settings.AutoSteal then
@@ -231,19 +230,25 @@ task.spawn(function()
                 local part = targetCage:FindFirstChild("HumanoidRootPart") or targetCage:FindFirstChildWhichIsA("BasePart")
                 local prompt = targetCage:FindFirstChildWhichIsA("ProximityPrompt", true)
                 if part and prompt then
-                    teleportTo(part.CFrame + Vector3.new(0, 2, 0))
-                    task.wait(0.2)
-                    if fireproximityprompt then
-                        fireproximityprompt(prompt, 0)
-                    end
-                    task.wait(0.3)
-                    
-                    -- Bawa pulang langsung ke plot
-                    local myPlot = getMyPlot()
-                    if myPlot then
-                        local homePart = myPlot:FindFirstChild("Base") or myPlot.PrimaryPart
-                        if homePart then
-                            teleportTo(homePart.CFrame + Vector3.new(0, 3, 0))
+                    local reached = walkTo(part.Position, 6, function()
+                        return Settings.AutoSteal and targetCage.Parent ~= nil
+                    end)
+                    if reached and prompt.Parent then
+                        task.wait(0.2)
+                        if fireproximityprompt then
+                            fireproximityprompt(prompt)
+                        end
+                        task.wait(0.3)
+                        
+                        -- Jalan pulang ke plot
+                        local myPlot = getMyPlot()
+                        if myPlot then
+                            local homePart = myPlot:FindFirstChild("Base") or myPlot.PrimaryPart
+                            if homePart then
+                                walkTo(homePart.Position, 8, function()
+                                    return Settings.AutoSteal
+                                end)
+                            end
                         end
                     end
                 end
@@ -252,7 +257,7 @@ task.spawn(function()
     end
 end)
 
--- 6. QoL Player Mods (Noclip & Speed)
+-- 6. QoL Player Mods (Noclip Only)
 RunService.Stepped:Connect(function()
     if Settings.Noclip and Character then
         for _, part in ipairs(Character:GetDescendants()) do
@@ -261,9 +266,6 @@ RunService.Stepped:Connect(function()
             end
         end
     end
-    if Humanoid and Settings.WalkSpeed > 16 then
-        Humanoid.WalkSpeed = Settings.WalkSpeed
-    end
 end)
 
-print("[Steall Hub] Clean script loaded successfully for Delta Executor!")
+print("[Steall Hub] Clean & Safe script loaded successfully for Delta Executor!")

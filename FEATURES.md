@@ -7,8 +7,7 @@ Dokumentasi lengkap mengenai fitur-fitur yang sudah diimplementasikan, dibersihk
 ## 🚀 Ringkasan Fitur yang Sudah Aktif
 
 ### 1. 🥷 Auto Steal & Cage Management
-* **Auto Steal Cage:** Otomatis mendeteksi kandang (*cage*) terdekat yang ada di map, menghampirinya, mengeksekusi `ProximityPrompt` secara instan, lalu membawa kandang tersebut kembali ke plot milik Anda.
-* **Instant Teleport:** Menggunakan perpindahan posisi instan (`CFrame`) alih-alih berjalan kaki manual agar proses pencurian kandang selesai dalam hitungan milidetik.
+* **Auto Steal Cage (Natural Walk):** Otomatis mendeteksi kandang (*cage*) terdekat yang ada di map, berjalan kaki ke lokasinya (`Humanoid:MoveTo`), mengeksekusi `ProximityPrompt`, lalu berjalan kembali membawa kandang ke plot milik Anda (tanpa teleportasi).
 * **Auto Place Cage:** Otomatis menaruh kandang yang sedang dibawa ke slot kandang (*stall*) kosong di plot Anda menggunakan remote `PlaceCage`.
 * **Auto Open Cage:** Memindai seluruh kandang yang ada di plot dan otomatis membukanya (`OpenCage`) begitu *timer cooldown* selesai.
 
@@ -34,8 +33,7 @@ Dokumentasi lengkap mengenai fitur-fitur yang sudah diimplementasikan, dibersihk
 ---
 
 ### 4. ⚡ Player Mods & Quality of Life (QoL)
-* **WalkSpeed Slider:** Mengatur kecepatan jalan karakter mulai dari 16 hingga 200.
-* **Noclip:** Mematikan tabrakan (*CanCollide*) pada karakter sehingga bisa menembus dinding dan rintangan tanpa terhalang.
+* **Noclip:** Mematikan tabrakan (*CanCollide*) pada karakter sehingga bisa menembus dinding dan rintangan tanpa terhalang. *(Modifikasi WalkSpeed dan Teleport telah dihapus untuk mencegah deteksi moderasi).*
 
 ---
 
@@ -55,8 +53,7 @@ Pengaturan ini dapat diubah langsung melalui kode atau melalui menu GUI di dalam
 
 | Variabel | Tipe | Default | Deskripsi |
 | :--- | :---: | :---: | :--- |
-| `AutoSteal` | `boolean` | `false` | Menyalakan/mematikan siklus pencurian kandang |
-| `InstantTeleport` | `boolean` | `true` | Teleport instan langsung ke kandang |
+| `AutoSteal` | `boolean` | `false` | Menyalakan/mematikan siklus pencurian kandang (berjalan kaki) |
 | `AutoPlaceCage` | `boolean` | `true` | Otomatis menaruh kandang di slot kosong |
 | `AutoOpenCage` | `boolean` | `true` | Otomatis membuka kandang saat timer selesai |
 | `AutoTrain` | `boolean` | `false` | Berdiri otomatis di treadmill saat idle |
@@ -67,7 +64,6 @@ Pengaturan ini dapat diubah langsung melalui kode atau melalui menu GUI di dalam
 | `AutoEquipBest` | `boolean` | `true` | Memakai pet dengan pendapatan terbaik |
 | `AutoClaimRewards` | `boolean` | `true` | Klaim daily, index, dan champion rewards |
 | `AutoRebirth` | `boolean` | `false` | Melakukan rebirth otomatis |
-| `WalkSpeed` | `number` | `16` | Kecepatan jalan karakter (16 - 200) |
 | `Noclip` | `boolean` | `false` | Menembus dinding & rintangan |
 
 ---
@@ -83,3 +79,4 @@ Steall/
 ├── Steal-A-Pet-And-Ride-It_raw.lua   # Script mentah asli (sebelum didekripsi)
 └── extracted_strings.txt             # 1.408 data konstanta & nama remote asli
 ```
+
