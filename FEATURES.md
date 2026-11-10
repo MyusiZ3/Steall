@@ -56,7 +56,7 @@ Pengaturan ini dapat diubah langsung melalui kode atau melalui menu GUI di dalam
 | Variabel | Tipe | Default | Deskripsi |
 | :--- | :---: | :---: | :--- |
 | `SlowModeNearEgg` | `boolean` | `true` | Otomatis aktifkan Slow Mode dekat egg & matikan saat Hold E |
-| `SlowModeEggDist` | `number` | `28` | Jarak (studs) ke egg untuk mulai menyalakan Slow Mode |
+| `SlowModeEggDist` | `number` | `0` | Jarak (studs) ke egg (`0` = Default `28 studs`, `> 0` = Custom studs) |
 | `SlowModeInBase` | `boolean` | `true` | Otomatis aktifkan Slow Mode setelah 2 detik di Base / Safe Zone |
 | `AutoSteal` | `boolean` | `false` | Menyalakan/mematikan siklus pencurian kandang (berjalan kaki) |
 | `AutoPlaceCage` | `boolean` | `true` | Otomatis menaruh kandang di slot kosong |

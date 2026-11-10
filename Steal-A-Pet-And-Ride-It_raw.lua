@@ -6,13 +6,22 @@ do
     local GuiService = game:GetService("GuiService")
 
     local LocalPlayer = Players.LocalPlayer
+    local DEFAULT_EGG_DIST = 28
 
     getgenv().SAP_SlowModeConfig = {
-        NearEgg = true,
-        EggDist = 28,
-        InBase  = true,
+        NearEgg       = true,
+        CustomEggDist = 0, -- 0 = Default (28 studs), > 0 = Custom studs
+        InBase        = true,
     }
     local SlowCfg = getgenv().SAP_SlowModeConfig
+
+    local function getEffectiveEggDist()
+        local v = tonumber(SlowCfg.CustomEggDist) or 0
+        if v <= 0 then
+            return DEFAULT_EGG_DIST
+        end
+        return v
+    end
 
     local cachedSlowButton = nil
     local cachedSlowContainer = nil
@@ -234,18 +243,19 @@ do
                 end
             -- 3. Jika sedang di luar Base (di Path)
             elseif not inBase and SlowCfg.NearEgg then
+                local targetDist = getEffectiveEggDist()
                 local dist = getShortestCageDist()
-                if dist <= SlowCfg.EggDist then
+                if dist <= targetDist then
                     -- Sudah dekat dengan Egg -> Aktifkan Slow Mode agar tidak terpeleset!
                     setSlowMode(true)
-                elseif dist > (SlowCfg.EggDist + 8) then
+                elseif dist > (targetDist + 8) then
                     setSlowMode(false)
                 end
             end
         end
     end)
 
-    -- Hook AirFlow UI agar Toggle "Auto Slow Mode Near Egg" & "Auto Slow Mode In Base" muncul di tab Farm asli
+    -- Hook AirFlow UI agar Toggle & Custom Studs muncul di tab Farm asli
     local origLoadstring = loadstring
     getgenv().loadstring = function(src, chunkname)
         local fn, err = origLoadstring(src, chunkname)
@@ -274,15 +284,34 @@ do
                                     })
                                     if tab.CreateSlider then
                                         tab:CreateSlider({
-                                            Name = "Slow Mode Egg Distance",
-                                            Desc = "Distance in studs from the target cage to activate Slow Mode.",
-                                            Min = 10,
-                                            Max = 60,
-                                            Step = 2,
-                                            Default = 28,
+                                            Name = "Slow Mode Egg Distance (0 = Default)",
+                                            Desc = "0 = Default (28 studs). Set above 0 to customize the distance in studs.",
+                                            Min = 0,
+                                            Max = 100,
+                                            Step = 1,
+                                            Default = 0,
                                             Suffix = " studs",
                                             Flag = "SAPSlowEggDist",
-                                            Callback = function(v) SlowCfg.EggDist = v end,
+                                            Callback = function(v)
+                                                SlowCfg.CustomEggDist = tonumber(v) or 0
+                                            end,
+                                        })
+                                    end
+                                    if tab.CreateInput then
+                                        tab:CreateInput({
+                                            Name = "Custom Egg Distance (Ketik Angka)",
+                                            Desc = "Ketik 0 untuk Default (28 studs), atau ketik angka custom studs (contoh: 35).",
+                                            Placeholder = "0 = Default (28 studs)",
+                                            Default = "0",
+                                            Flag = "SAPSlowEggDistInput",
+                                            Callback = function(text)
+                                                local num = tonumber(text)
+                                                if num and num >= 0 then
+                                                    SlowCfg.CustomEggDist = num
+                                                else
+                                                    SlowCfg.CustomEggDist = 0
+                                                end
+                                            end,
                                         })
                                     end
                                     tab:CreateToggle({

@@ -59,12 +59,14 @@ local ChampionClaimRemote = getRemote("ChampionClaim")
 local BuyTrailRemote      = getRemote("BuyTrail")
 local EquipTrailRemote    = getRemote("EquipTrail")
 
+local DEFAULT_EGG_DIST = 28
+
 getgenv().SAP_Settings = {
     AutoSteal            = false,
     AutoPlaceCage        = true,
     AutoOpenCage         = true,
     SlowModeNearEgg      = true,
-    SlowModeEggDist      = 28,
+    SlowModeEggDist      = 0, -- 0 = Default (28 studs), > 0 = Custom studs
     SlowModeInBase       = true,
     AutoTrain            = false,
     AutoUpgradeTreadmill = true,
@@ -78,6 +80,14 @@ getgenv().SAP_Settings = {
 }
 
 local Settings = getgenv().SAP_Settings
+
+local function getEffectiveEggDist()
+    local val = tonumber(Settings.SlowModeEggDist) or 0
+    if val <= 0 then
+        return DEFAULT_EGG_DIST
+    end
+    return val
+end
 
 -- ================= GAME HELPERS =================
 
@@ -357,12 +367,13 @@ task.spawn(function()
             if isHoldingStealPrompt or carrying then
                 setSlowMode(false)
             else
-                -- Cek jarak ke Egg terdekat
+                -- Cek jarak ke Egg terdekat (0 = Default 28 studs)
+                local targetDist = getEffectiveEggDist()
                 local nearestEntry, dist = getNearestCage()
-                if nearestEntry and dist <= Settings.SlowModeEggDist then
+                if nearestEntry and dist <= targetDist then
                     -- Sudah dekat dengan Egg -> Aktifkan Slow Mode agar tidak terpeleset (sliding)!
                     setSlowMode(true)
-                elseif dist > (Settings.SlowModeEggDist + 8) then
+                elseif dist > (targetDist + 8) then
                     -- Masih jauh dari Egg -> Pastikan Slow Mode mati agar lari kencang
                     setSlowMode(false)
                 end
@@ -543,12 +554,29 @@ FarmTab:CreateToggle({
     Callback = function(v) Settings.SlowModeNearEgg = v end,
 })
 FarmTab:CreateSlider({
-    Name = "Slow Mode Egg Distance (Studs)",
-    Range = {10, 60},
-    Increment = 2,
-    CurrentValue = 28,
-    Callback = function(v) Settings.SlowModeEggDist = v end,
+    Name = "Slow Mode Egg Distance (0 = Default 28)",
+    Range = {0, 100},
+    Increment = 1,
+    CurrentValue = 0,
+    Callback = function(v)
+        Settings.SlowModeEggDist = tonumber(v) or 0
+    end,
 })
+if FarmTab.CreateInput then
+    FarmTab:CreateInput({
+        Name = "Custom Egg Studs (0 = Default)",
+        PlaceholderText = "0 = Default (28 studs)",
+        RemoveTextAfterFocusLost = false,
+        Callback = function(text)
+            local num = tonumber(text)
+            if num and num >= 0 then
+                Settings.SlowModeEggDist = num
+            else
+                Settings.SlowModeEggDist = 0
+            end
+        end,
+    })
+end
 FarmTab:CreateToggle({
     Name = "Auto Slow Mode In Base (2s Safe Zone)",
     CurrentValue = true,

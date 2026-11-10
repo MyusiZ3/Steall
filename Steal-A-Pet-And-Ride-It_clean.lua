@@ -55,11 +55,13 @@ local ChampionClaimRemote = getRemote("ChampionClaim")
 local BuyTrailRemote      = getRemote("BuyTrail")
 local EquipTrailRemote    = getRemote("EquipTrail")
 
+local DEFAULT_EGG_DIST = 28
+
 -- Konfigurasi Utama
 getgenv().SAP_Settings = {
     -- Auto Slow Mode (Anti-Sliding)
     SlowModeNearEgg      = true,
-    SlowModeEggDist      = 28,
+    SlowModeEggDist      = 0, -- 0 = Default (28 studs), > 0 = Custom studs
     SlowModeInBase       = true,
 
     -- Auto Steal & Cage
@@ -303,10 +305,11 @@ task.spawn(function()
             if isHoldingStealPrompt or carrying then
                 setSlowMode(false)
             else
+                local targetDist = (tonumber(Settings.SlowModeEggDist) and tonumber(Settings.SlowModeEggDist) > 0) and tonumber(Settings.SlowModeEggDist) or DEFAULT_EGG_DIST
                 local nearestEntry, dist = getNearestCage()
-                if nearestEntry and dist <= Settings.SlowModeEggDist then
+                if nearestEntry and dist <= targetDist then
                     setSlowMode(true)
-                elseif dist > (Settings.SlowModeEggDist + 8) then
+                elseif dist > (targetDist + 8) then
                     setSlowMode(false)
                 end
             end
