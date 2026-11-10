@@ -6,8 +6,10 @@ Dokumentasi lengkap mengenai fitur-fitur yang sudah diimplementasikan, dibersihk
 
 ## 🚀 Ringkasan Fitur yang Sudah Aktif
 
-### 1. 🥷 Auto Steal & Cage Management
-* **Auto Steal Cage (Natural Walk):** Otomatis mendeteksi kandang (*cage*) terdekat yang ada di map, berjalan kaki ke lokasinya (`Humanoid:MoveTo`), mengeksekusi `ProximityPrompt`, lalu berjalan kembali membawa kandang ke plot milik Anda (tanpa teleportasi).
+### 1. 🥷 Auto Steal, Cage Management & Smart Slow Mode (Anti-Sliding)
+* **Auto Slow Mode Near Egg:** Otomatis menyalakan tombol **Slow Mode** bawaan game ketika jarak karakter berada dalam radius dekat (`SlowModeEggDist`, default `28 studs`) dari egg/cage yang akan diambil agar karakter tidak terpeleset (*sliding*), lalu **otomatis mematikan Slow Mode** tepat pada saat karakter mulai **Hold E** (`PromptButtonHoldBegan`) agar karakter langsung lari kecepatan penuh menghindari monster.
+* **Auto Slow Mode In Base:** Otomatis menyalakan **Slow Mode** setelah karakter terdeteksi berada di dalam Safe Zone / Base selama **2 detik** berturut-turut, dan otomatis mematikannya kembali saat karakter hendak keluar mencuri egg.
+* **Auto Steal Cage (Natural Walk):** Otomatis mendeteksi kandang (*cage*) terdekat di `workspace.Paths`, berjalan kaki ke lokasinya (`Humanoid:MoveTo`), mengeksekusi `StealPrompt`, lalu berjalan kembali membawa kandang ke plot milik Anda (tanpa teleportasi).
 * **Auto Place Cage:** Otomatis menaruh kandang yang sedang dibawa ke slot kandang (*stall*) kosong di plot Anda menggunakan remote `PlaceCage`.
 * **Auto Open Cage:** Memindai seluruh kandang yang ada di plot dan otomatis membukanya (`OpenCage`) begitu *timer cooldown* selesai.
 
@@ -53,6 +55,9 @@ Pengaturan ini dapat diubah langsung melalui kode atau melalui menu GUI di dalam
 
 | Variabel | Tipe | Default | Deskripsi |
 | :--- | :---: | :---: | :--- |
+| `SlowModeNearEgg` | `boolean` | `true` | Otomatis aktifkan Slow Mode dekat egg & matikan saat Hold E |
+| `SlowModeEggDist` | `number` | `28` | Jarak (studs) ke egg untuk mulai menyalakan Slow Mode |
+| `SlowModeInBase` | `boolean` | `true` | Otomatis aktifkan Slow Mode setelah 2 detik di Base / Safe Zone |
 | `AutoSteal` | `boolean` | `false` | Menyalakan/mematikan siklus pencurian kandang (berjalan kaki) |
 | `AutoPlaceCage` | `boolean` | `true` | Otomatis menaruh kandang di slot kosong |
 | `AutoOpenCage` | `boolean` | `true` | Otomatis membuka kandang saat timer selesai |
