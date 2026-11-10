@@ -1,6 +1,6 @@
 --[[
     Steal A Pet And Ride It - Clean Script with GUI
-    Khusus untuk Delta Executor
+    Khusus untuk Delta Executor (Mobile & PC)
 ]]
 
 local UI_URL = "https://raw.githubusercontent.com/csgo1compte-cloud/RayVoidUi/refs/heads/main/RayVoid"
@@ -47,19 +47,28 @@ local OpenCageRemote      = getRemote("OpenCage")
 local EquipBestRemote     = getRemote("EquipBest")
 local RebirthRemote       = getRemote("Rebirth")
 local UpgradeTreadmill    = getRemote("UpgradeTreadmill")
+local UpgradePlotRemote   = getRemote("UpgradePlot")
+local ClaimDailyRemote    = getRemote("ClaimDaily")
+local ClaimAllIndexRemote = getRemote("ClaimAllIndexRewards")
+local ChampionClaimRemote = getRemote("ChampionClaim")
+local BuyTrailRemote      = getRemote("BuyTrail")
+local EquipTrailRemote    = getRemote("EquipTrail")
 
 getgenv().SAP_Settings = {
-    AutoSteal = false,
-    InstantTeleport = true,
-    AutoPlaceCage = true,
-    AutoOpenCage = true,
-    AutoTrain = false,
+    AutoSteal            = false,
+    InstantTeleport      = true,
+    AutoPlaceCage        = true,
+    AutoOpenCage         = true,
+    AutoTrain            = false,
     AutoUpgradeTreadmill = true,
-    AutoEquipBest = true,
-    AutoRebirth = false,
-    WalkSpeed = 16,
-    JumpPower = 50,
-    Noclip = false,
+    AutoTapBoost         = true,
+    AutoBuyStalls        = true,
+    AutoTrail            = true,
+    AutoEquipBest        = true,
+    AutoClaimRewards     = true,
+    AutoRebirth          = false,
+    WalkSpeed            = 16,
+    Noclip               = false,
 }
 
 local Settings = getgenv().SAP_Settings
@@ -81,17 +90,26 @@ local function teleportTo(cframe)
     if Settings.InstantTeleport then
         RootPart.CFrame = cframe
     else
-        local tween = TweenService:Create(RootPart, TweenInfo.new(1, Enum.EasingStyle.Linear), {CFrame = cframe})
+        local tween = TweenService:Create(RootPart, TweenInfo.new(0.8, Enum.EasingStyle.Linear), {CFrame = cframe})
         tween:Play()
         tween.Completed:Wait()
     end
 end
 
 -- ================= LOOPS =================
+
+-- 1. Claims & Best Pets
 task.spawn(function()
-    while task.wait(3) do
+    while task.wait(5) do
         if Settings.AutoEquipBest and EquipBestRemote then
             pcall(function() EquipBestRemote:FireServer() end)
+        end
+        if Settings.AutoClaimRewards then
+            pcall(function()
+                if ClaimDailyRemote then ClaimDailyRemote:FireServer() end
+                if ClaimAllIndexRemote then ClaimAllIndexRemote:FireServer() end
+                if ChampionClaimRemote then ChampionClaimRemote:FireServer() end
+            end)
         end
         if Settings.AutoRebirth and RebirthRemote then
             pcall(function() RebirthRemote:FireServer() end)
@@ -99,22 +117,33 @@ task.spawn(function()
     end
 end)
 
+-- 2. Buy Stalls & Trails
+task.spawn(function()
+    while task.wait(10) do
+        if Settings.AutoBuyStalls and UpgradePlotRemote then
+            pcall(function() UpgradePlotRemote:FireServer() end)
+        end
+        if Settings.AutoTrail and BuyTrailRemote then
+            pcall(function()
+                BuyTrailRemote:FireServer()
+                if EquipTrailRemote then EquipTrailRemote:FireServer() end
+            end)
+        end
+    end
+end)
+
+-- 3. Cages Loop
 task.spawn(function()
     while task.wait(1.5) do
         local myPlot = getMyPlot()
         if myPlot then
-            if Settings.AutoPlaceCage and PlaceCageRemote then
-                local stalls = myPlot:FindFirstChild("Stalls")
-                if stalls then
-                    for _, stall in ipairs(stalls:GetChildren()) do
+            local stalls = myPlot:FindFirstChild("Stalls")
+            if stalls then
+                for _, stall in ipairs(stalls:GetChildren()) do
+                    if Settings.AutoPlaceCage and PlaceCageRemote then
                         pcall(function() PlaceCageRemote:FireServer(stall) end)
                     end
-                end
-            end
-            if Settings.AutoOpenCage and OpenCageRemote then
-                local stalls = myPlot:FindFirstChild("Stalls")
-                if stalls then
-                    for _, stall in ipairs(stalls:GetChildren()) do
+                    if Settings.AutoOpenCage and OpenCageRemote then
                         if stall:FindFirstChild("Cage") then
                             pcall(function() OpenCageRemote:FireServer(stall) end)
                         end
@@ -125,6 +154,7 @@ task.spawn(function()
     end
 end)
 
+-- 4. Train (Treadmill) Loop
 task.spawn(function()
     while task.wait(1) do
         if Settings.AutoTrain then
@@ -143,8 +173,9 @@ task.spawn(function()
     end
 end)
 
+-- 5. Steal Cage Loop
 task.spawn(function()
-    while task.wait(0.5) do
+    while task.wait(0.6) do
         if Settings.AutoSteal then
             local cagesFolder = workspace:FindFirstChild("Cages") or workspace:FindFirstChild("SpawnedCages")
             local targetCage = nil
@@ -198,62 +229,77 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- ================= TABS =================
+-- ================= GUI TABS =================
 local FarmTab = Window:CreateTab("Auto Farm", "crosshair")
-FarmTab:CreateSection("Auto Steal")
 
+FarmTab:CreateSection("Auto Steal & Cages")
 FarmTab:CreateToggle({
     Name = "Auto Steal Cage",
     CurrentValue = false,
     Callback = function(v) Settings.AutoSteal = v end,
 })
-
 FarmTab:CreateToggle({
-    Name = "Instant Teleport (Fast)",
+    Name = "Instant Teleport (Fast Steal)",
     CurrentValue = true,
     Callback = function(v) Settings.InstantTeleport = v end,
 })
-
 FarmTab:CreateToggle({
     Name = "Auto Place Cage",
     CurrentValue = true,
     Callback = function(v) Settings.AutoPlaceCage = v end,
 })
-
 FarmTab:CreateToggle({
     Name = "Auto Open Cage",
     CurrentValue = true,
     Callback = function(v) Settings.AutoOpenCage = v end,
 })
 
-FarmTab:CreateSection("Training & Pet")
-
+FarmTab:CreateSection("Training (Treadmill)")
 FarmTab:CreateToggle({
     Name = "Auto Train (Treadmill)",
     CurrentValue = false,
     Callback = function(v) Settings.AutoTrain = v end,
 })
-
 FarmTab:CreateToggle({
     Name = "Auto Upgrade Treadmill",
     CurrentValue = true,
     Callback = function(v) Settings.AutoUpgradeTreadmill = v end,
 })
-
 FarmTab:CreateToggle({
+    Name = "Auto Tap Boost",
+    CurrentValue = true,
+    Callback = function(v) Settings.AutoTapBoost = v end,
+})
+
+local UpgradeTab = Window:CreateTab("Auto Upgrades", "arrow-up-circle")
+UpgradeTab:CreateSection("Auto Buy & Claims")
+UpgradeTab:CreateToggle({
+    Name = "Auto Buy Plot Stalls (Every 10s)",
+    CurrentValue = true,
+    Callback = function(v) Settings.AutoBuyStalls = v end,
+})
+UpgradeTab:CreateToggle({
+    Name = "Auto Buy Best Trail",
+    CurrentValue = true,
+    Callback = function(v) Settings.AutoTrail = v end,
+})
+UpgradeTab:CreateToggle({
+    Name = "Auto Claim Daily & Index Rewards",
+    CurrentValue = true,
+    Callback = function(v) Settings.AutoClaimRewards = v end,
+})
+UpgradeTab:CreateToggle({
     Name = "Auto Equip Best Pets",
     CurrentValue = true,
     Callback = function(v) Settings.AutoEquipBest = v end,
 })
-
-FarmTab:CreateToggle({
+UpgradeTab:CreateToggle({
     Name = "Auto Rebirth",
     CurrentValue = false,
     Callback = function(v) Settings.AutoRebirth = v end,
 })
 
 local PlayerTab = Window:CreateTab("Player Mods", "user")
-
 PlayerTab:CreateSlider({
     Name = "WalkSpeed",
     Range = {16, 200},
@@ -261,7 +307,6 @@ PlayerTab:CreateSlider({
     CurrentValue = 16,
     Callback = function(v) Settings.WalkSpeed = v end,
 })
-
 PlayerTab:CreateToggle({
     Name = "Noclip",
     CurrentValue = false,

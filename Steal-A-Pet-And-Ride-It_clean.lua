@@ -3,14 +3,17 @@
     Dibuat untuk Delta Executor (Mobile & PC)
     
     Fitur:
-    - Tanpa Obfuscator / VM (Mudah dimodifikasi & ringan)
-    - Bersih dari Telemetri (ScriptBlox & RScripts dihapus)
-    - Auto Steal (Teleport / Tween ke Cage terdekat/terjauh)
+    - 100% Bebas Enkripsi & Obfuscator (Mudah dibaca & dimodifikasi)
+    - Bersih dari Telemetri (ScriptBlox & RScripts dihapus total)
+    - Auto Steal Cage (Instant Teleport ke Cage terdekat/terjauh)
     - Auto Place & Auto Open Cage
-    - Auto Train & Upgrade Treadmill
-    - Auto Equip Best Pet & Auto Ride
-    - Auto Collect Cash & Auto Rebirth
-    - QoL Player (Speed, Jump, Noclip)
+    - Auto Train (Treadmill) & Auto Upgrade Treadmill
+    - Auto Tap Speed Boost (Mengklik balon speed boost otomatis)
+    - Auto Buy Plot Stalls (Membeli slot kandang baru setiap 10 detik)
+    - Auto Buy & Equip Best Trail
+    - Auto Claim Daily & Index Rewards
+    - Auto Equip Best Pet & Auto Rebirth
+    - QoL Player (WalkSpeed slider & Noclip)
 ]]
 
 local Players = game:GetService("Players")
@@ -47,21 +50,33 @@ local UpgradePlotRemote   = getRemote("UpgradePlot")
 local SellItemsRemote     = getRemote("SellItems")
 local ClaimDailyRemote    = getRemote("ClaimDaily")
 local ClaimAllIndexRemote = getRemote("ClaimAllIndexRewards")
+local ChampionClaimRemote = getRemote("ChampionClaim")
+local BuyTrailRemote      = getRemote("BuyTrail")
+local EquipTrailRemote    = getRemote("EquipTrail")
 
--- Configuration / Settings Table
+-- Konfigurasi Utama
 getgenv().SAP_Settings = {
-    AutoSteal = false,
-    InstantTeleport = true,
-    AutoPlaceCage = true,
-    AutoOpenCage = true,
-    AutoTrain = false,
+    -- Auto Steal & Cage
+    AutoSteal            = false,
+    InstantTeleport      = true,
+    AutoPlaceCage        = true,
+    AutoOpenCage         = true,
+    
+    -- Training & Upgrades
+    AutoTrain            = false,
     AutoUpgradeTreadmill = true,
-    AutoEquipBest = true,
-    AutoCollectCash = true,
-    AutoRebirth = false,
-    WalkSpeed = 16,
-    JumpPower = 50,
-    Noclip = false,
+    AutoTapBoost         = true,
+    AutoBuyStalls        = true,
+    AutoTrail            = true,
+    
+    -- Claims & Pets
+    AutoEquipBest        = true,
+    AutoClaimRewards     = true,
+    AutoRebirth          = false,
+    
+    -- Player Mods
+    WalkSpeed            = 16,
+    Noclip               = false,
 }
 
 local Settings = getgenv().SAP_Settings
@@ -84,56 +99,63 @@ local function teleportTo(cframe)
     if Settings.InstantTeleport then
         RootPart.CFrame = cframe
     else
-        local tweenInfo = TweenInfo.new(1, Enum.EasingStyle.Linear)
+        local tweenInfo = TweenInfo.new(0.8, Enum.EasingStyle.Linear)
         local tween = TweenService:Create(RootPart, tweenInfo, {CFrame = cframe})
         tween:Play()
         tween.Completed:Wait()
     end
 end
 
--- 1. Auto Collect Cash & Auto Equip Best Loop
+-- 1. Auto Claim (Daily, Index, Champion) & Auto Equip Best Loop
 task.spawn(function()
-    while task.wait(3) do
+    while task.wait(5) do
         if Settings.AutoEquipBest and EquipBestRemote then
+            pcall(function() EquipBestRemote:FireServer() end)
+        end
+        if Settings.AutoClaimRewards then
             pcall(function()
-                EquipBestRemote:FireServer()
+                if ClaimDailyRemote then ClaimDailyRemote:FireServer() end
+                if ClaimAllIndexRemote then ClaimAllIndexRemote:FireServer() end
+                if ChampionClaimRemote then ChampionClaimRemote:FireServer() end
             end)
         end
         if Settings.AutoRebirth and RebirthRemote then
+            pcall(function() RebirthRemote:FireServer() end)
+        end
+    end
+end)
+
+-- 2. Auto Buy Stalls & Auto Buy Trails Loop
+task.spawn(function()
+    while task.wait(10) do
+        if Settings.AutoBuyStalls and UpgradePlotRemote then
+            pcall(function() UpgradePlotRemote:FireServer() end)
+        end
+        if Settings.AutoTrail and BuyTrailRemote then
             pcall(function()
-                RebirthRemote:FireServer()
+                BuyTrailRemote:FireServer()
+                if EquipTrailRemote then EquipTrailRemote:FireServer() end
             end)
         end
     end
 end)
 
--- 2. Auto Place & Open Cages Loop
+-- 3. Auto Place & Open Cages Loop
 task.spawn(function()
     while task.wait(1.5) do
         local myPlot = getMyPlot()
         if myPlot then
-            -- Auto Place Cage
-            if Settings.AutoPlaceCage and PlaceCageRemote then
-                local stalls = myPlot:FindFirstChild("Stalls")
-                if stalls then
-                    for _, stall in ipairs(stalls:GetChildren()) do
-                        pcall(function()
-                            PlaceCageRemote:FireServer(stall)
-                        end)
+            local stalls = myPlot:FindFirstChild("Stalls")
+            if stalls then
+                for _, stall in ipairs(stalls:GetChildren()) do
+                    -- Place Cage
+                    if Settings.AutoPlaceCage and PlaceCageRemote then
+                        pcall(function() PlaceCageRemote:FireServer(stall) end)
                     end
-                end
-            end
-            
-            -- Auto Open Cage
-            if Settings.AutoOpenCage and OpenCageRemote then
-                local stalls = myPlot:FindFirstChild("Stalls")
-                if stalls then
-                    for _, stall in ipairs(stalls:GetChildren()) do
-                        local cage = stall:FindFirstChild("Cage")
-                        if cage then
-                            pcall(function()
-                                OpenCageRemote:FireServer(stall)
-                            end)
+                    -- Open Cage
+                    if Settings.AutoOpenCage and OpenCageRemote then
+                        if stall:FindFirstChild("Cage") then
+                            pcall(function() OpenCageRemote:FireServer(stall) end)
                         end
                     end
                 end
@@ -142,32 +164,50 @@ task.spawn(function()
     end
 end)
 
--- 3. Auto Train (Treadmill) Loop
+-- 4. Auto Train (Treadmill) & Auto Tap Boost Loop
 task.spawn(function()
     while task.wait(1) do
         if Settings.AutoTrain then
             local myPlot = getMyPlot()
             if myPlot then
                 local treadmill = myPlot:FindFirstChild("Treadmill") or myPlot:FindFirstChildWhichIsA("Model", true)
-                if treadmill and treadmill:FindFirstChild("HumanoidRootPart") or treadmill:FindFirstChild("Base") then
-                    local targetPart = treadmill:FindFirstChild("HumanoidRootPart") or treadmill:FindFirstChild("Base") or treadmill.PrimaryPart
-                    if targetPart and (RootPart.Position - targetPart.Position).Magnitude > 6 then
-                        teleportTo(targetPart.CFrame + Vector3.new(0, 3, 0))
-                    end
+                local targetPart = treadmill and (treadmill:FindFirstChild("HumanoidRootPart") or treadmill:FindFirstChild("Base") or treadmill.PrimaryPart)
+                if targetPart and (RootPart.Position - targetPart.Position).Magnitude > 6 then
+                    teleportTo(targetPart.CFrame + Vector3.new(0, 3, 0))
                 end
             end
             if Settings.AutoUpgradeTreadmill and UpgradeTreadmill then
-                pcall(function()
-                    UpgradeTreadmill:FireServer()
-                end)
+                pcall(function() UpgradeTreadmill:FireServer() end)
             end
         end
     end
 end)
 
--- 4. Auto Steal Cage Loop
+-- Auto Tap Boost (Mengklik gelembung boost kecepatan saat latihan)
 task.spawn(function()
     while task.wait(0.5) do
+        if Settings.AutoTapBoost and Settings.AutoTrain then
+            local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+            if playerGui then
+                for _, gui in ipairs(playerGui:GetDescendants()) do
+                    if gui:IsA("ImageButton") or gui:IsA("TextButton") then
+                        if gui.Name:lower():find("boost") or gui.Name:lower():find("tap") or gui.Name:lower():find("bubble") then
+                            if gui.Visible then
+                                pcall(function()
+                                    gui.Position = UDim2.new(0.5, 0, 0.5, 0)
+                                end)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- 5. Auto Steal Cage Loop
+task.spawn(function()
+    while task.wait(0.6) do
         if Settings.AutoSteal then
             local cagesFolder = workspace:FindFirstChild("Cages") or workspace:FindFirstChild("SpawnedCages")
             local targetCage = nil
@@ -198,7 +238,7 @@ task.spawn(function()
                     end
                     task.wait(0.3)
                     
-                    -- Bawa pulang ke plot
+                    -- Bawa pulang langsung ke plot
                     local myPlot = getMyPlot()
                     if myPlot then
                         local homePart = myPlot:FindFirstChild("Base") or myPlot.PrimaryPart
@@ -212,7 +252,7 @@ task.spawn(function()
     end
 end)
 
--- 5. QoL Player Mods (Noclip & Speed)
+-- 6. QoL Player Mods (Noclip & Speed)
 RunService.Stepped:Connect(function()
     if Settings.Noclip and Character then
         for _, part in ipairs(Character:GetDescendants()) do

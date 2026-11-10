@@ -22,3 +22,4 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/MyusiZ3/Steall/main/S
 ```
 
 *(Catatan: Karena repositori bersifat private, untuk loadstring langsung di Roblox lewat link raw GitHub Anda memerlukan Personal Access Token atau mengubah repositori menjadi publik jika ingin bisa diakses siapa saja).*
+
