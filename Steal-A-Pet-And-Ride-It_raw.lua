@@ -612,6 +612,22 @@ do
         getgenv()._SAP_OrigLoadstring = origLoadstring
     end
 
+    -- Intercept HttpGet game agar URL UI AKkiwi dialihkan 100% ke repositori kamu sendiri (MyusiZ3/Steall)
+    local origHttpGet = game.HttpGet
+    local myUiUrl = "https://raw.githubusercontent.com/MyusiZ3/Steall/main/AirFlow.lua"
+
+    local function customHttpGet(self, url, ...)
+        local urlStr = tostring(url or "")
+        if urlStr:find("AirFlow") or urlStr:find("RayVoid") or urlStr:find("csgo1compte-cloud") then
+            return origHttpGet(self, myUiUrl .. "?v=" .. os.time(), ...)
+        end
+        return origHttpGet(self, url, ...)
+    end
+
+    pcall(function()
+        hookfunction(game.HttpGet, customHttpGet)
+    end)
+
     local function hookedLoadstring(src, chunkname)
         local fn, err = origLoadstring(src, chunkname)
         if not fn then
@@ -620,8 +636,17 @@ do
         return function(...)
             local uiLib = fn(...)
             if type(uiLib) == "table" and (uiLib.CreateWindow or uiLib.Window) then
+                -- Matikan AutoFleet bawaan AKkiwi
+                uiLib.AutoFleet = false
+                uiLib.AnalyticsURL = ""
+
                 local origCW = uiLib.CreateWindow or uiLib.Window
                 local function wrappedCreateWindow(self, opts)
+                    if type(opts) == "table" then
+                        opts.Title = "Steall HUB"
+                        opts.Subtitle = "Private Custom Edition"
+                        opts.MainCredit = false
+                    end
                     local win = origCW(self, opts)
                     if type(win) == "table" and (win.CreateTab or win.Tab) then
                         local origCT = win.CreateTab or win.Tab
