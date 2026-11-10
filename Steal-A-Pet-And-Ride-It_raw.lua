@@ -41,7 +41,7 @@ do
 
     local cachedWidget = nil
 
-    -- Mencari widget "Slow Mode" asli bawaan game di PlayerGui menggunakan posisi layar (AbsolutePosition)
+    -- Mencari widget "Slow Mode" asli bawaan game di PlayerGui
     local function findSlowModeWidget()
         if cachedWidget and cachedWidget.label and cachedWidget.label.Parent and cachedWidget.label.AbsoluteSize.X > 5 then
             return cachedWidget
@@ -58,8 +58,8 @@ do
                 local sg = desc:FindFirstAncestorOfClass("ScreenGui")
                 if not (sg and IGNORED_GUI_NAMES[sg.Name]) then
                     local rawText = tostring(desc.Text or "")
-                    local cleanText = rawText:gsub("<[^>]+>", ""):match("^%s*(.-)%s*$"):lower()
-                    if cleanText == "slow mode" and desc.Visible and desc.AbsoluteSize.X > 5 then
+                    local cleanText = rawText:gsub("<[^>]+>", ""):match("^%s*(.-)%s*$")
+                    if cleanText and cleanText:lower() == "slow mode" and desc.Visible and desc.AbsoluteSize.X > 5 then
                         labelObj = desc
                         screenGui = sg or playerGui
                         break
@@ -90,21 +90,21 @@ do
         for _, obj in ipairs(searchRoot:GetDescendants()) do
             if obj:IsA("GuiObject") and obj.Visible and obj.AbsoluteSize.X >= 8 and obj.AbsoluteSize.Y >= 8 and obj.AbsoluteSize.Y <= 95 then
                 local cy = obj.AbsolutePosition.Y + (obj.AbsoluteSize.Y * 0.5)
-                if math.abs(cy - lblCenterY) <= 28 then
-                    if obj.AbsolutePosition.X <= lblLeftX + 20 and (obj.AbsolutePosition.X + obj.AbsoluteSize.X) >= (lblLeftX - 190) then
+                if math.abs(cy - lblCenterY) <= 32 then
+                    if obj.AbsolutePosition.X <= lblLeftX + 25 and (obj.AbsolutePosition.X + obj.AbsoluteSize.X) >= (lblLeftX - 220) then
                         table.insert(rowObjects, obj)
                     end
                 end
             end
         end
 
-        -- 1. Cari Track (kotak kapsul abu-abu di sebelah kiri tulisan "Slow Mode")
+        -- 1. Cari Track (kotak switch kapsul di sebelah kiri tulisan "Slow Mode")
         local trackObj = nil
         local bestTrackArea = 0
         for _, obj in ipairs(rowObjects) do
-            if obj ~= labelObj and (obj.AbsolutePosition.X + obj.AbsoluteSize.X) <= (lblLeftX + 20) then
-                if obj.AbsoluteSize.X >= 26 and obj.AbsoluteSize.X <= 140 and obj.AbsoluteSize.Y >= 14 and obj.AbsoluteSize.Y <= 65 then
-                    if obj.AbsoluteSize.X >= obj.AbsoluteSize.Y * 1.15 then
+            if obj ~= labelObj and (obj.AbsolutePosition.X + obj.AbsoluteSize.X) <= (lblLeftX + 25) then
+                if obj.AbsoluteSize.X >= 24 and obj.AbsoluteSize.X <= 160 and obj.AbsoluteSize.Y >= 14 and obj.AbsoluteSize.Y <= 70 then
+                    if obj.AbsoluteSize.X >= obj.AbsoluteSize.Y * 1.10 then
                         local area = obj.AbsoluteSize.X * obj.AbsoluteSize.Y
                         if area > bestTrackArea then
                             bestTrackArea = area
@@ -115,14 +115,14 @@ do
             end
         end
 
-        -- 2. Cari Knob (kotak biru di dalam Track yang bergeser kiri/kanan)
+        -- 2. Cari Knob (kotak/lingkaran di dalam Track yang bergeser)
         local knobObj = nil
         if trackObj then
             for _, obj in ipairs(rowObjects) do
                 if obj ~= trackObj and obj ~= labelObj and not obj:IsA("TextLabel") then
-                    if obj.AbsoluteSize.X >= 8 and obj.AbsoluteSize.X <= (trackObj.AbsoluteSize.X * 0.82) and obj.AbsoluteSize.Y >= 8 and obj.AbsoluteSize.Y <= (trackObj.AbsoluteSize.Y * 1.15) then
+                    if obj.AbsoluteSize.X >= 8 and obj.AbsoluteSize.X <= (trackObj.AbsoluteSize.X * 0.88) and obj.AbsoluteSize.Y >= 8 and obj.AbsoluteSize.Y <= (trackObj.AbsoluteSize.Y * 1.25) then
                         local kcx = obj.AbsolutePosition.X + (obj.AbsoluteSize.X * 0.5)
-                        if kcx >= (trackObj.AbsolutePosition.X - 4) and kcx <= (trackObj.AbsolutePosition.X + trackObj.AbsoluteSize.X + 4) then
+                        if kcx >= (trackObj.AbsolutePosition.X - 6) and kcx <= (trackObj.AbsolutePosition.X + trackObj.AbsoluteSize.X + 6) then
                             knobObj = obj
                             break
                         end
@@ -131,7 +131,7 @@ do
             end
         end
 
-        -- 3. Kumpulkan semua kandidat tombol yang bisa diklik pada baris Slow Mode
+        -- 3. Kumpulkan tombol klik utama
         for _, obj in ipairs(rowObjects) do
             if obj:IsA("GuiButton") then
                 addTarget(obj)
@@ -142,15 +142,9 @@ do
             for _, child in ipairs(trackObj:GetDescendants()) do
                 if child:IsA("GuiButton") then addTarget(child) end
             end
-            if trackObj.Parent and trackObj.Parent:IsA("GuiObject") and trackObj.Parent.AbsoluteSize.Y <= 95 then
-                addTarget(trackObj.Parent)
-            end
         end
-        if knobObj then addTarget(knobObj) end
-        if labelObj.Parent and labelObj.Parent:IsA("GuiObject") and labelObj.Parent.AbsoluteSize.Y <= 95 then
-            addTarget(labelObj.Parent)
-        end
-        addTarget(labelObj)
+        if knobObj and knobObj:IsA("GuiButton") then addTarget(knobObj) end
+        if labelObj:IsA("GuiButton") then addTarget(labelObj) end
 
         cachedWidget = {
             label     = labelObj,
@@ -175,19 +169,33 @@ do
 
         local w = findSlowModeWidget()
         if w then
+            -- A. Deteksi warna hijau pada Track (Switch ON di game ini berwarna hijau, OFF berwarna abu-abu)
+            if w.track and w.track.Parent then
+                local bg = w.track.BackgroundColor3
+                if bg then
+                    -- Hijau (G > R + 0.15 dan G > B + 0.15) menandakan Slow Mode sedang ON!
+                    if bg.G > (bg.R + 0.15) and bg.G > (bg.B + 0.15) then
+                        return true
+                    end
+                    -- Abu-abu/gelap menandakan Slow Mode sedang OFF
+                    if math.abs(bg.R - bg.G) < 0.08 and math.abs(bg.G - bg.B) < 0.08 then
+                        return false
+                    end
+                end
+            end
+
+            -- B. Deteksi posisi Knob (jika di kanan = ON, di kiri = OFF)
             if w.track and w.knob and w.track.Parent and w.knob.Parent and w.track.AbsoluteSize.X > 0 then
                 local trackCenterX = w.track.AbsolutePosition.X + (w.track.AbsoluteSize.X * 0.5)
                 local knobCenterX  = w.knob.AbsolutePosition.X + (w.knob.AbsoluteSize.X * 0.5)
-                return knobCenterX > (trackCenterX + 1)
+                return knobCenterX > trackCenterX
             end
+
             for _, t in ipairs(w.targets) do
-                if t.Parent and t.AbsoluteSize.X >= 26 then
-                    for _, child in ipairs(t:GetDescendants()) do
-                        if child:IsA("GuiObject") and not child:IsA("TextLabel") and child.AbsoluteSize.X >= 8 and child.AbsoluteSize.X <= (t.AbsoluteSize.X * 0.82) then
-                            local tcx = t.AbsolutePosition.X + (t.AbsoluteSize.X * 0.5)
-                            local kcx = child.AbsolutePosition.X + (child.AbsoluteSize.X * 0.5)
-                            return kcx > (tcx + 1)
-                        end
+                if t.Parent and t.AbsoluteSize.X >= 24 then
+                    local bg = t.BackgroundColor3
+                    if bg and bg.G > (bg.R + 0.15) and bg.G > (bg.B + 0.15) then
+                        return true
                     end
                 end
             end
@@ -195,14 +203,13 @@ do
 
         return false
     end
-
     local isTogglingSlowMode = false
     local lastSlowToggleClock = 0
 
-    -- Mengklik tombol Slow Mode bawaan game dengan verifikasi perubahan state
+    -- Mengklik tombol Slow Mode bawaan game dengan presisi anti double-click
     local function setSlowMode(desiredState, forceImmediate)
         if isTogglingSlowMode then return false end
-        if not forceImmediate and (os.clock() - lastSlowToggleClock < 0.35) then return false end
+        if not forceImmediate and (os.clock() - lastSlowToggleClock < 0.30) then return false end
 
         local currentState = isSlowModeActive()
         if not forceImmediate and currentState == desiredState then
@@ -218,118 +225,57 @@ do
         lastSlowToggleClock = os.clock()
 
         local ok, result = pcall(function()
-            local char = LocalPlayer and LocalPlayer.Character
-            local hum = char and char:FindFirstChildOfClass("Humanoid")
-            local beforeWS = (hum and hum.WalkSpeed) or 0
-            local beforeKnobX = (w.knob and w.knob.AbsolutePosition.X) or 0
+            local targetBtn = nil
+            for _, t in ipairs(w.targets) do
+                if t:IsA("GuiButton") then
+                    targetBtn = t
+                    break
+                end
+            end
+            targetBtn = targetBtn or w.track or w.targets[1]
 
-            local function didFlip()
+            -- Coba 1: VirtualInputManager Single Click (paling stabil menyerupai klik asli pemain)
+            if VirtualInputManager and targetBtn and targetBtn.AbsoluteSize.X > 0 then
+                local inset = GuiService:GetGuiInset()
+                local cx = targetBtn.AbsolutePosition.X + (targetBtn.AbsoluteSize.X * 0.5)
+                local cyWithInset = targetBtn.AbsolutePosition.Y + (targetBtn.AbsoluteSize.Y * 0.5) + inset.Y
+
+                VirtualInputManager:SendMouseButtonEvent(cx, cyWithInset, 0, true, game, 1)
+                task.wait(0.05)
+                VirtualInputManager:SendMouseButtonEvent(cx, cyWithInset, 0, false, game, 1)
+                task.wait(0.12)
                 if isSlowModeActive() == desiredState then return true end
-                if w.knob and math.abs(w.knob.AbsolutePosition.X - beforeKnobX) >= 3 then return true end
-                if hum and math.abs(hum.WalkSpeed - beforeWS) >= 2 then return true end
-                return false
             end
 
-            -- Langkah 1: getconnections
-            if type(getconnections) == "function" then
-                local sigNames = { "Activated", "MouseButton1Click", "MouseButton1Down", "MouseButton1Up" }
-                for _, target in ipairs(w.targets) do
-                    for _, sigName in ipairs(sigNames) do
-                        local okSig, sig = pcall(function() return target[sigName] end)
-                        if okSig and sig then
-                            local okConn, conns = pcall(getconnections, sig)
-                            if okConn and type(conns) == "table" and #conns > 0 then
-                                for _, conn in ipairs(conns) do
-                                    local firedConn = false
-                                    if type(conn.Fire) == "function" then
-                                        local s = pcall(function() conn:Fire() end)
-                                        firedConn = s
-                                    end
-                                    if not firedConn and type(conn.Function) == "function" then
-                                        pcall(task.spawn, conn.Function)
-                                    end
-                                end
-                                task.wait(0.14)
-                                if didFlip() then return true end
-                            end
-                        end
-                    end
-
-                    local okIn, inSig = pcall(function() return target.InputBegan end)
-                    if okIn and inSig then
-                        local okConn, conns = pcall(getconnections, inSig)
-                        if okConn and type(conns) == "table" and #conns > 0 then
-                            local pos = Vector3.new(
-                                target.AbsolutePosition.X + target.AbsoluteSize.X * 0.5,
-                                target.AbsolutePosition.Y + target.AbsoluteSize.Y * 0.5,
-                                0
-                            )
-                            local fakeMouse = {
-                                UserInputType = Enum.UserInputType.MouseButton1,
-                                UserInputState = Enum.UserInputState.Begin,
-                                Position = pos,
-                                KeyCode = Enum.KeyCode.Unknown,
-                            }
-                            local fakeTouch = {
-                                UserInputType = Enum.UserInputType.Touch,
-                                UserInputState = Enum.UserInputState.Begin,
-                                Position = pos,
-                                KeyCode = Enum.KeyCode.Unknown,
-                            }
-                            for _, conn in ipairs(conns) do
-                                if type(conn.Function) == "function" then
-                                    pcall(task.spawn, conn.Function, fakeMouse, false)
-                                end
-                            end
-                            task.wait(0.14)
-                            if didFlip() then return true end
-
-                            for _, conn in ipairs(conns) do
-                                if type(conn.Function) == "function" then
-                                    pcall(task.spawn, conn.Function, fakeTouch, false)
-                                end
-                            end
-                            task.wait(0.14)
-                            if didFlip() then return true end
-                        end
-                    end
+            -- Coba 2: firesignal Activated / MouseButton1Click (hanya 1 signal pertama)
+            if type(firesignal) == "function" and targetBtn and targetBtn:IsA("GuiButton") then
+                local activatedSig = pcall(function() return targetBtn.Activated end) and targetBtn.Activated
+                local clickSig = pcall(function() return targetBtn.MouseButton1Click end) and targetBtn.MouseButton1Click
+                local sig = activatedSig or clickSig
+                if sig then
+                    pcall(firesignal, sig)
+                    task.wait(0.12)
+                    if isSlowModeActive() == desiredState then return true end
                 end
             end
 
-            -- Langkah 2: firesignal
-            if type(firesignal) == "function" then
-                local sigNames = { "Activated", "MouseButton1Click", "MouseButton1Down" }
-                for _, target in ipairs(w.targets) do
-                    if target:IsA("GuiButton") then
-                        for _, sigName in ipairs(sigNames) do
-                            pcall(function() firesignal(target[sigName]) end)
-                            task.wait(0.14)
-                            if didFlip() then return true end
+            -- Coba 3: getconnections pada targetBtn
+            if type(getconnections) == "function" and targetBtn then
+                local sig = (pcall(function() return targetBtn.Activated end) and targetBtn.Activated)
+                    or (pcall(function() return targetBtn.MouseButton1Click end) and targetBtn.MouseButton1Click)
+                if sig then
+                    local okConn, conns = pcall(getconnections, sig)
+                    if okConn and type(conns) == "table" and #conns > 0 then
+                        for _, conn in ipairs(conns) do
+                            if type(conn.Fire) == "function" then
+                                pcall(function() conn:Fire() end)
+                            elseif type(conn.Function) == "function" then
+                                pcall(task.spawn, conn.Function)
+                            end
                         end
+                        task.wait(0.12)
+                        if isSlowModeActive() == desiredState then return true end
                     end
-                end
-            end
-
-            -- Langkah 3: VirtualInputManager
-            if VirtualInputManager then
-                local clickBox = w.track or w.targets[1]
-                if clickBox and clickBox.AbsoluteSize.X > 0 then
-                    local inset = GuiService:GetGuiInset()
-                    local cx = clickBox.AbsolutePosition.X + (clickBox.AbsoluteSize.X * 0.5)
-                    local cyWithInset = clickBox.AbsolutePosition.Y + (clickBox.AbsoluteSize.Y * 0.5) + inset.Y
-
-                    VirtualInputManager:SendMouseButtonEvent(cx, cyWithInset, 0, true, game, 1)
-                    task.wait(0.04)
-                    VirtualInputManager:SendMouseButtonEvent(cx, cyWithInset, 0, false, game, 1)
-                    task.wait(0.14)
-                    if didFlip() then return true end
-
-                    local cyRaw = clickBox.AbsolutePosition.Y + (clickBox.AbsoluteSize.Y * 0.5)
-                    VirtualInputManager:SendMouseButtonEvent(cx, cyRaw, 0, true, game, 1)
-                    task.wait(0.04)
-                    VirtualInputManager:SendMouseButtonEvent(cx, cyRaw, 0, false, game, 1)
-                    task.wait(0.14)
-                    if didFlip() then return true end
                 end
             end
 
@@ -340,7 +286,6 @@ do
         isTogglingSlowMode = false
         return ok and result or false
     end
-
     local isHoldingPrompt = false
     local conns = {}
 
@@ -397,27 +342,52 @@ do
         return false
     end
 
+    -- Mencari semua kandang/telur di seluruh Workspace (mendukung Paths, Worlds, Ocean Planet, Black Hole, dll)
     local function getAllSpawnedCages()
         local list = {}
-        local paths = workspace:FindFirstChild("Paths")
-        if paths then
-            for _, pathModel in ipairs(paths:GetChildren()) do
-                local cages = pathModel:FindFirstChild("Cages")
-                if cages then
-                    for _, cage in ipairs(cages:GetChildren()) do
-                        local root = cage:FindFirstChild("Root") or cage:FindFirstChildWhichIsA("BasePart")
-                        local prompt = (root and root:FindFirstChild("StealPrompt")) or cage:FindFirstChild("StealPrompt", true)
-                        if root and prompt and prompt.Enabled then
-                            table.insert(list, { model = cage, root = root, prompt = prompt, path = pathModel })
-                        end
+        local seenModels = {}
+
+        local function scanContainer(container)
+            if not container then return end
+            for _, obj in ipairs(container:GetDescendants()) do
+                if obj:IsA("ProximityPrompt") and obj.Enabled and obj.Name == "StealPrompt" then
+                    local rootPart = obj.Parent
+                    local cageModel = (rootPart and rootPart:FindFirstAncestorOfClass("Model")) or rootPart
+                    if cageModel and rootPart and rootPart:IsA("BasePart") and not seenModels[cageModel] then
+                        seenModels[cageModel] = true
+                        local pathModel = cageModel:FindFirstAncestorWhichIsA("Model") or cageModel.Parent
+                        table.insert(list, { model = cageModel, root = rootPart, prompt = obj, path = pathModel })
                     end
                 end
             end
         end
+
+        -- 1. Periksa workspace.Paths (World 1 normal)
+        local paths = workspace:FindFirstChild("Paths")
+        if paths then scanContainer(paths) end
+
+        -- 2. Periksa workspace.Worlds atau folder map lain (World 2, Ocean Planet, Space, dll)
+        local worlds = workspace:FindFirstChild("Worlds")
+        if worlds then scanContainer(worlds) end
+
+        -- 3. Jika belum ada atau di area khusus, pindai ProximityPrompt StealPrompt langsung
+        if #list == 0 then
+            for _, desc in ipairs(workspace:GetDescendants()) do
+                if desc:IsA("ProximityPrompt") and desc.Enabled and desc.Name == "StealPrompt" then
+                    local rootPart = desc.Parent
+                    local cageModel = (rootPart and rootPart:FindFirstAncestorOfClass("Model")) or rootPart
+                    if cageModel and rootPart and rootPart:IsA("BasePart") and not seenModels[cageModel] then
+                        seenModels[cageModel] = true
+                        table.insert(list, { model = cageModel, root = rootPart, prompt = desc, path = cageModel.Parent })
+                    end
+                end
+            end
+        end
+
         return list
     end
 
-    -- Mendeteksi telur spesifik yang sedang dituju oleh player (bukan sembarang telur di map)
+    -- Mendeteksi telur spesifik yang sedang dituju oleh player
     local function getTargetEgg()
         local char = LocalPlayer and LocalPlayer.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -442,19 +412,14 @@ do
         local walkToPoint = hum.WalkToPoint
         if walkToPoint and walkToPoint.Magnitude > 1 then
             for _, entry in ipairs(allCages) do
-                if entry.root and (entry.root.Position - walkToPoint).Magnitude <= 10 then
+                if entry.root and (entry.root.Position - walkToPoint).Magnitude <= 14 then
                     local dist = (hrp.Position - entry.root.Position).Magnitude
                     return entry, dist
                 end
             end
         end
 
-        -- 3. Cek state AKkiwi HUB (AKkiwi_StealAPet.brain.Doing)
-        local sap = getgenv().AKkiwi_StealAPet
-        local brainDoing = (sap and sap.brain and tostring(sap.brain.Doing or "")) or ""
-        local targetPathNum = tonumber(brainDoing:match("Going to path (%d+)"))
-
-        -- 4. Cek arah jalan karakter (Humanoid.MoveDirection) saat berjalan manual atau script
+        -- 3. Cek arah jalan karakter (Humanoid.MoveDirection)
         local moveDir = hum.MoveDirection
         local isMoving = moveDir.Magnitude > 0.08
 
@@ -466,29 +431,22 @@ do
             local offset = entry.root.Position - hrp.Position
             local dist = offset.Magnitude
 
-            local onCorrectPath = true
-            if targetPathNum and entry.path and entry.path.Name ~= ("Path" .. targetPathNum) then
-                onCorrectPath = false
-            end
-
-            if onCorrectPath then
-                if isMoving then
-                    local dir = offset / (dist > 0 and dist or 1)
-                    local dot = moveDir:Dot(dir)
-                    -- Hanya telur yang searah di depan pergerakan player (dot > 0.65)
-                    if dot > 0.65 then
-                        local score = dot * 100 - dist
-                        if score > bestScore then
-                            bestScore = score
-                            bestEntry = entry
-                            bestDist = dist
-                        end
-                    end
-                else
-                    if dist < bestDist then
-                        bestDist = dist
+            if isMoving then
+                local dir = offset / (dist > 0 and dist or 1)
+                local dot = moveDir:Dot(dir)
+                -- Telur yang searah di depan pergerakan player (dot > 0.45)
+                if dot > 0.45 then
+                    local score = dot * 100 - dist
+                    if score > bestScore then
+                        bestScore = score
                         bestEntry = entry
+                        bestDist = dist
                     end
+                end
+            else
+                if dist < bestDist then
+                    bestDist = dist
+                    bestEntry = entry
                 end
             end
         end
@@ -504,7 +462,7 @@ do
     local safeZoneEnterTime = nil
 
     task.spawn(function()
-        while runningLoop and task.wait(0.12) do
+        while runningLoop and task.wait(0.10) do
             local sap = getgenv().AKkiwi_StealAPet
             local brainDoing = (sap and sap.brain and tostring(sap.brain.Doing or "")) or ""
             local carrying = LocalPlayer and (LocalPlayer:GetAttribute("CarryingCage") ~= nil and LocalPlayer:GetAttribute("CarryingCage") ~= false)
@@ -516,8 +474,9 @@ do
                 safeZoneEnterTime = nil
             end
 
-            local goingToSteal = brainDoing:find("Going to path") ~= nil or brainDoing:find("Stealing") ~= nil
-            local runningHome  = brainDoing:find("Running home") ~= nil or brainDoing:find("Delivering") ~= nil
+            -- Deteksi status perjalanan ke telur vs perjalanan pulang
+            local goingToSteal = brainDoing:find("Going to") ~= nil or brainDoing:find("Looking for") ~= nil or brainDoing:find("Stealing") ~= nil
+            local runningHome  = brainDoing:find("Running home") ~= nil or brainDoing:find("Delivering") ~= nil or brainDoing:find("Back to base") ~= nil
 
             -- 1. Jika sedang Hold E, sedang mencuri, atau lari pulang membawa cage -> Matikan Slow Mode!
             if isHoldingPrompt or carrying or runningHome or brainDoing:find("Stealing") then
@@ -532,10 +491,10 @@ do
                         setSlowMode(false)
                     end
                 elseif SlowCfg.InBase and safeZoneEnterTime and (os.clock() - safeZoneEnterTime >= 2.0) then
-                    -- Sudah 2 detik di Safe Zone -> Aktifkan Slow Mode!
+                    -- Sudah 2 detik idle di Safe Zone -> Aktifkan Slow Mode!
                     setSlowMode(true)
                 end
-            -- 3. Jika sedang di luar Base (di Path)
+            -- 3. Jika sedang di luar Base (sedang di jalur menuju telur)
             elseif not inBase and SlowCfg.NearEgg then
                 local targetDist = getEffectiveEggDist()
                 local targetEgg, dist = getTargetEgg()
@@ -546,24 +505,23 @@ do
                     -- Batas inner: zona interaksi/ambil telor (prompt muncul / hold E)
                     local stealZoneDist = promptMaxDist + 2 -- sekitar 12 studs
 
-                    -- A. Jika sudah memasuki zona ambil telor (<= stealZoneDist) -> Matikan Slow Mode!
+                    -- A. Jika sudah memasuki zona ambil telor (<= stealZoneDist) -> Matikan Slow Mode agar tidak diserang monster!
                     if dist <= stealZoneDist then
                         setSlowMode(false)
                     -- B. Jika sedang mendekati telor (stealZoneDist < dist <= targetDist) -> Aktifkan Slow Mode (Anti-Sliding / Rem)!
                     elseif dist <= targetDist then
                         setSlowMode(true)
-                    -- C. Jika masih jauh dari telor (> targetDist) -> Matikan Slow Mode!
+                    -- C. Jika masih jauh dari telor (> targetDist, sedang otw lari) -> Matikan Slow Mode!
                     else
                         setSlowMode(false)
                     end
                 else
-                    -- Tidak sedang menuju ke telor mana pun -> Matikan Slow Mode!
+                    -- Tidak sedang dekat dengan telor mana pun di depan -> Matikan Slow Mode agar lari cepat!
                     setSlowMode(false)
                 end
             end
         end
     end)
-
     getgenv().SAP_SlowModeUnload = function()
         runningLoop = false
         for _, c in ipairs(conns) do

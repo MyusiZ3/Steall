@@ -201,21 +201,42 @@ end
 
 local function getAllSpawnedCages()
     local list = {}
-    local paths = workspace:FindFirstChild("Paths")
-    if paths then
-        for _, pathModel in ipairs(paths:GetChildren()) do
-            local cagesFolder = pathModel:FindFirstChild("Cages")
-            if cagesFolder then
-                for _, cage in ipairs(cagesFolder:GetChildren()) do
-                    local root = cage:FindFirstChild("Root") or cage:FindFirstChildWhichIsA("BasePart")
-                    local prompt = (root and root:FindFirstChild("StealPrompt")) or cage:FindFirstChild("StealPrompt", true)
-                    if root and prompt and prompt.Enabled then
-                        table.insert(list, { model = cage, root = root, prompt = prompt, path = pathModel })
-                    end
+    local seenModels = {}
+
+    local function scanContainer(container)
+        if not container then return end
+        for _, obj in ipairs(container:GetDescendants()) do
+            if obj:IsA("ProximityPrompt") and obj.Enabled and obj.Name == "StealPrompt" then
+                local rootPart = obj.Parent
+                local cageModel = (rootPart and rootPart:FindFirstAncestorOfClass("Model")) or rootPart
+                if cageModel and rootPart and rootPart:IsA("BasePart") and not seenModels[cageModel] then
+                    seenModels[cageModel] = true
+                    local pathModel = cageModel:FindFirstAncestorWhichIsA("Model") or cageModel.Parent
+                    table.insert(list, { model = cageModel, root = rootPart, prompt = obj, path = pathModel })
                 end
             end
         end
     end
+
+    local paths = workspace:FindFirstChild("Paths")
+    if paths then scanContainer(paths) end
+
+    local worlds = workspace:FindFirstChild("Worlds")
+    if worlds then scanContainer(worlds) end
+
+    if #list == 0 then
+        for _, desc in ipairs(workspace:GetDescendants()) do
+            if desc:IsA("ProximityPrompt") and desc.Enabled and desc.Name == "StealPrompt" then
+                local rootPart = desc.Parent
+                local cageModel = (rootPart and rootPart:FindFirstAncestorOfClass("Model")) or rootPart
+                if cageModel and rootPart and rootPart:IsA("BasePart") and not seenModels[cageModel] then
+                    seenModels[cageModel] = true
+                    table.insert(list, { model = cageModel, root = rootPart, prompt = desc, path = cageModel.Parent })
+                end
+            end
+        end
+    end
+
     return list
 end
 
@@ -244,7 +265,7 @@ local function getTargetEgg()
     local walkToPoint = hum.WalkToPoint
     if walkToPoint and walkToPoint.Magnitude > 1 then
         for _, entry in ipairs(allCages) do
-            if entry.root and (entry.root.Position - walkToPoint).Magnitude <= 10 then
+            if entry.root and (entry.root.Position - walkToPoint).Magnitude <= 14 then
                 local dist = (hrp.Position - entry.root.Position).Magnitude
                 return entry, dist
             end
@@ -266,8 +287,8 @@ local function getTargetEgg()
         if isMoving then
             local dir = offset / (dist > 0 and dist or 1)
             local dot = moveDir:Dot(dir)
-            -- Hanya telur yang searah di depan pergerakan player (dot > 0.65)
-            if dot > 0.65 then
+            -- Hanya telur yang searah di depan pergerakan player (dot > 0.45)
+            if dot > 0.45 then
                 local score = dot * 100 - dist
                 if score > bestScore then
                     bestScore = score
@@ -330,8 +351,8 @@ local function findSlowModeWidget()
             local sg = desc:FindFirstAncestorOfClass("ScreenGui")
             if not (sg and IGNORED_GUI_NAMES[sg.Name]) then
                 local rawText = tostring(desc.Text or "")
-                local cleanText = rawText:gsub("<[^>]+>", ""):match("^%s*(.-)%s*$"):lower()
-                if cleanText == "slow mode" and desc.Visible and desc.AbsoluteSize.X > 5 then
+                local cleanText = rawText:gsub("<[^>]+>", ""):match("^%s*(.-)%s*$")
+                if cleanText and cleanText:lower() == "slow mode" and desc.Visible and desc.AbsoluteSize.X > 5 then
                     labelObj = desc
                     screenGui = sg or playerGui
                     break
@@ -362,8 +383,8 @@ local function findSlowModeWidget()
     for _, obj in ipairs(searchRoot:GetDescendants()) do
         if obj:IsA("GuiObject") and obj.Visible and obj.AbsoluteSize.X >= 8 and obj.AbsoluteSize.Y >= 8 and obj.AbsoluteSize.Y <= 95 then
             local cy = obj.AbsolutePosition.Y + (obj.AbsoluteSize.Y * 0.5)
-            if math.abs(cy - lblCenterY) <= 28 then
-                if obj.AbsolutePosition.X <= lblLeftX + 20 and (obj.AbsolutePosition.X + obj.AbsoluteSize.X) >= (lblLeftX - 190) then
+            if math.abs(cy - lblCenterY) <= 32 then
+                if obj.AbsolutePosition.X <= lblLeftX + 25 and (obj.AbsolutePosition.X + obj.AbsoluteSize.X) >= (lblLeftX - 220) then
                     table.insert(rowObjects, obj)
                 end
             end
@@ -373,9 +394,9 @@ local function findSlowModeWidget()
     local trackObj = nil
     local bestTrackArea = 0
     for _, obj in ipairs(rowObjects) do
-        if obj ~= labelObj and (obj.AbsolutePosition.X + obj.AbsoluteSize.X) <= (lblLeftX + 20) then
-            if obj.AbsoluteSize.X >= 26 and obj.AbsoluteSize.X <= 140 and obj.AbsoluteSize.Y >= 14 and obj.AbsoluteSize.Y <= 65 then
-                if obj.AbsoluteSize.X >= obj.AbsoluteSize.Y * 1.15 then
+        if obj ~= labelObj and (obj.AbsolutePosition.X + obj.AbsoluteSize.X) <= (lblLeftX + 25) then
+            if obj.AbsoluteSize.X >= 24 and obj.AbsoluteSize.X <= 160 and obj.AbsoluteSize.Y >= 14 and obj.AbsoluteSize.Y <= 70 then
+                if obj.AbsoluteSize.X >= obj.AbsoluteSize.Y * 1.10 then
                     local area = obj.AbsoluteSize.X * obj.AbsoluteSize.Y
                     if area > bestTrackArea then
                         bestTrackArea = area
@@ -390,9 +411,9 @@ local function findSlowModeWidget()
     if trackObj then
         for _, obj in ipairs(rowObjects) do
             if obj ~= trackObj and obj ~= labelObj and not obj:IsA("TextLabel") then
-                if obj.AbsoluteSize.X >= 8 and obj.AbsoluteSize.X <= (trackObj.AbsoluteSize.X * 0.82) and obj.AbsoluteSize.Y >= 8 and obj.AbsoluteSize.Y <= (trackObj.AbsoluteSize.Y * 1.15) then
+                if obj.AbsoluteSize.X >= 8 and obj.AbsoluteSize.X <= (trackObj.AbsoluteSize.X * 0.88) and obj.AbsoluteSize.Y >= 8 and obj.AbsoluteSize.Y <= (trackObj.AbsoluteSize.Y * 1.25) then
                     local kcx = obj.AbsolutePosition.X + (obj.AbsoluteSize.X * 0.5)
-                    if kcx >= (trackObj.AbsolutePosition.X - 4) and kcx <= (trackObj.AbsolutePosition.X + trackObj.AbsoluteSize.X + 4) then
+                    if kcx >= (trackObj.AbsolutePosition.X - 6) and kcx <= (trackObj.AbsolutePosition.X + trackObj.AbsoluteSize.X + 6) then
                         knobObj = obj
                         break
                     end
@@ -402,24 +423,16 @@ local function findSlowModeWidget()
     end
 
     for _, obj in ipairs(rowObjects) do
-        if obj:IsA("GuiButton") then
-            addTarget(obj)
-        end
+        if obj:IsA("GuiButton") then addTarget(obj) end
     end
     if trackObj then
         addTarget(trackObj)
         for _, child in ipairs(trackObj:GetDescendants()) do
             if child:IsA("GuiButton") then addTarget(child) end
         end
-        if trackObj.Parent and trackObj.Parent:IsA("GuiObject") and trackObj.Parent.AbsoluteSize.Y <= 95 then
-            addTarget(trackObj.Parent)
-        end
     end
-    if knobObj then addTarget(knobObj) end
-    if labelObj.Parent and labelObj.Parent:IsA("GuiObject") and labelObj.Parent.AbsoluteSize.Y <= 95 then
-        addTarget(labelObj.Parent)
-    end
-    addTarget(labelObj)
+    if knobObj and knobObj:IsA("GuiButton") then addTarget(knobObj) end
+    if labelObj:IsA("GuiButton") then addTarget(labelObj) end
 
     cachedWidget = {
         label     = labelObj,
@@ -441,19 +454,29 @@ local function isSlowModeActive()
 
     local w = findSlowModeWidget()
     if w then
+        if w.track and w.track.Parent then
+            local bg = w.track.BackgroundColor3
+            if bg then
+                if bg.G > (bg.R + 0.15) and bg.G > (bg.B + 0.15) then
+                    return true
+                end
+                if math.abs(bg.R - bg.G) < 0.08 and math.abs(bg.G - bg.B) < 0.08 then
+                    return false
+                end
+            end
+        end
+
         if w.track and w.knob and w.track.Parent and w.knob.Parent and w.track.AbsoluteSize.X > 0 then
             local trackCenterX = w.track.AbsolutePosition.X + (w.track.AbsoluteSize.X * 0.5)
             local knobCenterX  = w.knob.AbsolutePosition.X + (w.knob.AbsoluteSize.X * 0.5)
-            return knobCenterX > (trackCenterX + 1)
+            return knobCenterX > trackCenterX
         end
+
         for _, t in ipairs(w.targets) do
-            if t.Parent and t.AbsoluteSize.X >= 26 then
-                for _, child in ipairs(t:GetDescendants()) do
-                    if child:IsA("GuiObject") and not child:IsA("TextLabel") and child.AbsoluteSize.X >= 8 and child.AbsoluteSize.X <= (t.AbsoluteSize.X * 0.82) then
-                        local tcx = t.AbsolutePosition.X + (t.AbsoluteSize.X * 0.5)
-                        local kcx = child.AbsolutePosition.X + (child.AbsoluteSize.X * 0.5)
-                        return kcx > (tcx + 1)
-                    end
+            if t.Parent and t.AbsoluteSize.X >= 24 then
+                local bg = t.BackgroundColor3
+                if bg and bg.G > (bg.R + 0.15) and bg.G > (bg.B + 0.15) then
+                    return true
                 end
             end
         end
@@ -467,7 +490,7 @@ local lastSlowToggleClock = 0
 
 local function setSlowMode(desiredState, forceImmediate)
     if isTogglingSlowMode then return false end
-    if not forceImmediate and (os.clock() - lastSlowToggleClock < 0.35) then return false end
+    if not forceImmediate and (os.clock() - lastSlowToggleClock < 0.30) then return false end
 
     local currentState = isSlowModeActive()
     if not forceImmediate and currentState == desiredState then
@@ -483,113 +506,54 @@ local function setSlowMode(desiredState, forceImmediate)
     lastSlowToggleClock = os.clock()
 
     local ok, result = pcall(function()
-        local beforeWS = (Humanoid and Humanoid.WalkSpeed) or 0
-        local beforeKnobX = (w.knob and w.knob.AbsolutePosition.X) or 0
+        local targetBtn = nil
+        for _, t in ipairs(w.targets) do
+            if t:IsA("GuiButton") then
+                targetBtn = t
+                break
+            end
+        end
+        targetBtn = targetBtn or w.track or w.targets[1]
 
-        local function didFlip()
+        if VirtualInputManager and targetBtn and targetBtn.AbsoluteSize.X > 0 then
+            local inset = GuiService:GetGuiInset()
+            local cx = targetBtn.AbsolutePosition.X + (targetBtn.AbsoluteSize.X * 0.5)
+            local cyWithInset = targetBtn.AbsolutePosition.Y + (targetBtn.AbsoluteSize.Y * 0.5) + inset.Y
+
+            VirtualInputManager:SendMouseButtonEvent(cx, cyWithInset, 0, true, game, 1)
+            task.wait(0.05)
+            VirtualInputManager:SendMouseButtonEvent(cx, cyWithInset, 0, false, game, 1)
+            task.wait(0.12)
             if isSlowModeActive() == desiredState then return true end
-            if w.knob and math.abs(w.knob.AbsolutePosition.X - beforeKnobX) >= 3 then return true end
-            if Humanoid and math.abs(Humanoid.WalkSpeed - beforeWS) >= 2 then return true end
-            return false
         end
 
-        if type(getconnections) == "function" then
-            local sigNames = { "Activated", "MouseButton1Click", "MouseButton1Down", "MouseButton1Up" }
-            for _, target in ipairs(w.targets) do
-                for _, sigName in ipairs(sigNames) do
-                    local okSig, sig = pcall(function() return target[sigName] end)
-                    if okSig and sig then
-                        local okConn, conns = pcall(getconnections, sig)
-                        if okConn and type(conns) == "table" and #conns > 0 then
-                            for _, conn in ipairs(conns) do
-                                local firedConn = false
-                                if type(conn.Fire) == "function" then
-                                    local s = pcall(function() conn:Fire() end)
-                                    firedConn = s
-                                end
-                                if not firedConn and type(conn.Function) == "function" then
-                                    pcall(task.spawn, conn.Function)
-                                end
-                            end
-                            task.wait(0.14)
-                            if didFlip() then return true end
-                        end
-                    end
-                end
-
-                local okIn, inSig = pcall(function() return target.InputBegan end)
-                if okIn and inSig then
-                    local okConn, conns = pcall(getconnections, inSig)
-                    if okConn and type(conns) == "table" and #conns > 0 then
-                        local pos = Vector3.new(
-                            target.AbsolutePosition.X + target.AbsoluteSize.X * 0.5,
-                            target.AbsolutePosition.Y + target.AbsoluteSize.Y * 0.5,
-                            0
-                        )
-                        local fakeMouse = {
-                            UserInputType = Enum.UserInputType.MouseButton1,
-                            UserInputState = Enum.UserInputState.Begin,
-                            Position = pos,
-                            KeyCode = Enum.KeyCode.Unknown,
-                        }
-                        local fakeTouch = {
-                            UserInputType = Enum.UserInputType.Touch,
-                            UserInputState = Enum.UserInputState.Begin,
-                            Position = pos,
-                            KeyCode = Enum.KeyCode.Unknown,
-                        }
-                        for _, conn in ipairs(conns) do
-                            if type(conn.Function) == "function" then
-                                pcall(task.spawn, conn.Function, fakeMouse, false)
-                            end
-                        end
-                        task.wait(0.14)
-                        if didFlip() then return true end
-
-                        for _, conn in ipairs(conns) do
-                            if type(conn.Function) == "function" then
-                                pcall(task.spawn, conn.Function, fakeTouch, false)
-                            end
-                        end
-                        task.wait(0.14)
-                        if didFlip() then return true end
-                    end
-                end
+        if type(firesignal) == "function" and targetBtn and targetBtn:IsA("GuiButton") then
+            local activatedSig = pcall(function() return targetBtn.Activated end) and targetBtn.Activated
+            local clickSig = pcall(function() return targetBtn.MouseButton1Click end) and targetBtn.MouseButton1Click
+            local sig = activatedSig or clickSig
+            if sig then
+                pcall(firesignal, sig)
+                task.wait(0.12)
+                if isSlowModeActive() == desiredState then return true end
             end
         end
 
-        if type(firesignal) == "function" then
-            local sigNames = { "Activated", "MouseButton1Click", "MouseButton1Down" }
-            for _, target in ipairs(w.targets) do
-                if target:IsA("GuiButton") then
-                    for _, sigName in ipairs(sigNames) do
-                        pcall(function() firesignal(target[sigName]) end)
-                        task.wait(0.14)
-                        if didFlip() then return true end
+        if type(getconnections) == "function" and targetBtn then
+            local sig = (pcall(function() return targetBtn.Activated end) and targetBtn.Activated)
+                or (pcall(function() return targetBtn.MouseButton1Click end) and targetBtn.MouseButton1Click)
+            if sig then
+                local okConn, conns = pcall(getconnections, sig)
+                if okConn and type(conns) == "table" and #conns > 0 then
+                    for _, conn in ipairs(conns) do
+                        if type(conn.Fire) == "function" then
+                            pcall(function() conn:Fire() end)
+                        elseif type(conn.Function) == "function" then
+                            pcall(task.spawn, conn.Function)
+                        end
                     end
+                    task.wait(0.12)
+                    if isSlowModeActive() == desiredState then return true end
                 end
-            end
-        end
-
-        if VirtualInputManager then
-            local clickBox = w.track or w.targets[1]
-            if clickBox and clickBox.AbsoluteSize.X > 0 then
-                local inset = GuiService:GetGuiInset()
-                local cx = clickBox.AbsolutePosition.X + (clickBox.AbsoluteSize.X * 0.5)
-                local cyWithInset = clickBox.AbsolutePosition.Y + (clickBox.AbsoluteSize.Y * 0.5) + inset.Y
-
-                VirtualInputManager:SendMouseButtonEvent(cx, cyWithInset, 0, true, game, 1)
-                task.wait(0.04)
-                VirtualInputManager:SendMouseButtonEvent(cx, cyWithInset, 0, false, game, 1)
-                task.wait(0.14)
-                if didFlip() then return true end
-
-                local cyRaw = clickBox.AbsolutePosition.Y + (clickBox.AbsoluteSize.Y * 0.5)
-                VirtualInputManager:SendMouseButtonEvent(cx, cyRaw, 0, true, game, 1)
-                task.wait(0.04)
-                VirtualInputManager:SendMouseButtonEvent(cx, cyRaw, 0, false, game, 1)
-                task.wait(0.14)
-                if didFlip() then return true end
             end
         end
 
