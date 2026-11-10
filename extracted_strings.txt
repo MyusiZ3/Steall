@@ -1,0 +1,1377 @@
+
+…
+ < 
+ cage on stall 
+ gems
+ items
+ min
+ queued
+ tickets
+ | 
+ · 
+ · boss %d/%d
+ · no character
+ — check the URL
+!%Y-%m-%dT%H:%M:%SZ
+%$([%d%.]+)
+%.3g
+%D
+%H:%M:%S
+%d / %d
+%d item(s) ready · sold %d · earned $%s
+%d items · $%s
+%d stalls · weakest holds path %s · you can reach path %d → farming %s
+%d · %s (%s speed)
+%d+
+%s (%s)
+%s · %.0f studs away
+%s · in World %d, you are in World %d
+%s · stolen %d · placed %d · opened %d · failed %d · taps %d
+%s ← %s
+%s → %s
+%s%s · tickets %s
+%s+$
+(nobody else here)
++$
+-$
+/api/webhooks/
+10
+100
+103
+105
+106
+107
+108
+11
+110
+111
+112
+113
+114
+115
+117
+118
+119
+12
+120
+122
+123
+123456789012345678
+124
+126
+128
+129
+13
+133
+135
+136
+138
+14
+140
+141
+142
+144
+146
+148
+149
+15
+150
+151
+153
+154
+155
+156
+158
+159
+16
+161
+164
+165
+168
+17
+170
+171
+174
+175
+177
+178
+179
+18
+180
+181
+182
+183
+185
+186
+187
+188
+19
+190
+193
+194
+195
+196
+197
+198
+199
+20
+200
+2000
+201
+202
+203
+204
+205
+207
+208
+21
+214
+215
+217
+219
+22
+220
+221
+222
+223
+225
+226
+227
+228
+229
+23
+230
+231
+232
+233
+235
+236
+238
+239
+24
+240
+241
+244
+245
+246
+248
+25
+251
+255
+256
+257
+26
+260
+261
+263
+265
+268
+269
+27
+273
+276
+277
+278
+28
+283
+286
+288
+29
+292
+293
+294
+295
+297
+298
+299
+30
+300
+301
+305
+306
+307
+31
+310
+311
+312
+314
+315
+316
+318
+32
+322
+323
+324
+328
+329
+33
+331
+332
+334
+335
+336
+337
+338
+34
+341
+344
+345
+346
+347
+348
+35
+350
+351
+353
+355
+356
+357
+36
+363
+364
+368
+37
+372
+374
+377
+378
+379
+38
+380
+381
+382
+384
+385
+386
+389
+39
+390
+3900
+391
+393
+395
+398
+399
+40
+402
+403
+404
+406
+408
+41
+412
+413
+414
+417
+418
+419
+42
+420
+421
+422
+423
+424
+425
+426
+427
+428
+43
+430
+431
+434
+436
+44
+441
+443
+444
+445
+446
+447
+45
+450
+452
+454
+455
+456
+457
+459
+46
+460
+461
+464
+468
+469
+47
+471
+473
+474
+476
+48
+480
+482
+490
+491
+492
+494
+495
+496
+499
+50
+500
+501
+502
+504
+506
+509
+51
+56
+60
+61
+63
+65
+67
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+84
+85
+86
+87
+88
+89
+90
+900
+95
+98
+99
+: 
+<@
+A cage with one of these goes first, on any path you can reach, even if its rarity is on your never-steal list. None = off.
+AKkiwi was here 🥝
+AKkiwiHub
+AKkiwi_SAP.log
+AKkiwi_StealAPet
+Ability
+Ability %s · range %s · cooldown %ss · casts %d · candy %s
+AbilityConfig
+AfkController
+All
+Already
+Also sell mutated items
+Amount
+Answered the offer
+Answers Yes when a mini game is offered (every 10 min, needs 2 players) and presses Ready on the road. It does not play the race: the farm pauses while you are in a game. Drinks a Ticket Potion from your bag when it joins.
+Anti-AFK
+Anti-AFK: 
+Anti-AFK: Off
+Any
+Any rarity
+As soon as possible
+Asks for the next stall every 10 s (the server checks the price).
+Attribute
+Auto (farthest I can reach)
+Auto Buy Stalls
+Auto Buy Tickets Shop
+Auto Buy Trail
+Auto Claim Champion
+Auto Claim Daily
+Auto Claim Index
+Auto Collect Cash
+Auto Equip Best Pets
+Auto Fight
+Auto Gift
+Auto Join
+Auto Make Room
+Auto Open Cages
+Auto Place Cage
+Auto Place Cage is off, not going to steal
+Auto Place Pets
+Auto Place Pets leaves this many stalls empty while Auto Steal is on.
+Auto Rebirth
+Auto Ride Best Pet
+Auto Sell
+Auto Sell: no answer from the shop (refused?)
+Auto Sell: the sell shop of this world is not loaded yet, walk near it once
+Auto Steal
+Auto Talismans
+Auto Talismans waits until you hold this many gems (it never buys below the talisman's own price).
+Auto Tap Boost
+Auto Train
+Auto Upgrade Treadmill
+Auto Use Potion
+AutoLoad
+AutoLoadDelay
+BRAIN ERROR 
+Back to base
+Backpack
+Balanced
+Barn
+Barn2
+Base
+Base price in tickets in brackets (the Mini Games Cage price doubles with each purchase).
+BasePart
+Baseplate
+Batch
+Belt
+Best first
+Best rarity
+Best rarity only
+Best rarity only: takes a mutated cage only if it is also the rarest kind on its path.
+BestWorld
+BindUrlBox
+Body
+Boss
+Boss fight
+BossHP
+BossMax
+Bought 
+Bought %d · claims %d · last: %s
+Bounds
+Brain error: 
+Brings the stolen cage home but does not place it on a stall: it stays in your inventory (to sell or gift). Never limited by free stalls.
+Busy
+Button
+Buy when gems are at least
+BuyEquipBest
+BuyTalisman
+BuyTicketItem
+BuyTrail
+Buying talisman %s (%s gems)
+Buys the best trail you can pay in cash and equips the strongest one you own.
+Buys the next treadmill level when you can afford it.
+Buys, with gems, the best tier you can pay for each type below (once you hold the minimum), then wears the best you own.
+CAUGHT %d in 5 min | pos=%s ws=%.0f brain=%s
+CFrame
+Cage
+Cage choice
+Cage kinds the loop ignores.
+Cage stalls are full, waiting for them to open
+Cage stalls are full: the cage waits in your inventory
+Cage$
+CageConfig
+Cages
+Callback
+CanCollide
+Candy
+CandyOnly
+CaptureController
+CarryingCage
+Cash
+Cash per hour
+Cash since last report
+Cash, speed, pets owned, gifts and sales, with the cash earned since the last report.
+CashPad
+Caught 3 times: one path lower for 10 min
+Challenge
+Challenges
+Champion
+Champion Pass
+ChampionClaim
+Character
+ClaimAllIndexRewards
+ClaimDaily
+Claimed Champion rewards
+Claims
+Claims every index reward that is ready.
+Claims the daily quests, the weekly challenges and every pass tier you have unlocked.
+Claims the daily reward when it is ready.
+ClickButton2
+Collecting cash
+Config
+Configs
+ConfigurationSaving
+Connect
+Content
+Content-Type
+Controllers
+Cooldown
+Cost
+Could not bring the cage home
+Count
+CreateButton
+CreateConfigManager
+CreateDropdown
+CreateInput
+CreateKeybind
+CreateLabel
+CreateParagraph
+CreateSection
+CreateSlider
+CreateTab
+CreateToggle
+CreateWindow
+CurrentCamera
+Daily
+DailyBiome
+DailyMost
+DailyReady
+Dashboard
+Dc
+Default
+Delivering
+Desc
+Destroy
+Digest every
+Digest of the Auto Sell trips and the cash they brought.
+Digest of the items this account gave away, and to whom.
+Digest of the items this account received, and from whom (for the receiver account).
+Disconnect
+Discord channel → Edit → Integrations → Webhooks → Copy URL
+Discord notifications
+Discord user ID to ping
+Discord webhook
+DisplayName
+Doing
+Done
+Drank a Ticket Potion
+Drank a potion
+DrinkPotion
+Drinks the Halloween Potion from your bag (2x money and treadmill for 15 min) and drinks the next one 15 min later.
+ERRORMESSAGE %q type=%s | brain=%s | note=%s | pos=%s | carrying=%s | on=%s
+Enable webhook
+Enabled
+End
+Enum
+Equip Best: 
+EquipBest
+EquipBestConfig
+EquipTalisman
+EquipTool
+EquipTrail
+ErrorMessageChanged
+Event
+Every
+EverySeconds
+F13
+Far
+Farm
+Farthest
+Favorite
+FileName
+Fills the target field with a player of this server.
+Filters
+FindFirstChild
+FindFirstChildOfClass
+Fire
+FireServer
+First
+Flag
+Flags
+Fleet
+Floor
+FolderName
+For the main account: stands still at the spot below so the bots always find it. Stealing, training and the rest of the farm pause while it is on.
+Function
+GIFT 
+GemBag
+Gems
+Get
+GetAttribute
+GetAttributeChangedSignal
+GetBiome
+GetChildren
+GetCost
+GetDescendants
+GetErrorType
+GetLimited
+GetMax
+GetMaxLevel
+GetNextCost
+GetOffer
+GetPivot
+GetPlayers
+GetServerTimeNow
+GetService
+GetWalkSpeed
+GetWorld
+Gift
+Gift order
+Gift paused 60 s: 
+GiftGot
+GiftSent
+GiftToPlayer
+Gifting to 
+Gifts and sales are grouped into one message per period instead of one message each.
+Gifts only pets and cages that carry a mutation (Spooky...).
+Gifts received
+Gifts sent
+Gifts sent / received
+Goal
+Going to World 2
+Going to path 
+Going to the receiving spot
+Going to the treadmill
+Gone
+Got
+Got %s %s from %s
+Ground
+GuiService
+HP
+HTTP 
+Halloween
+Halloween fight
+HalloweenConfig
+HasHttp
+Hatch
+Have
+Headers
+Health
+Heartbeat
+Hide the menu
+HoldDuration
+How this works
+HttpGet
+HttpService
+Hub
+Humanoid
+HumanoidRootPart
+Icon
+Idle
+Idled
+InSafeZone
+Income
+Index
+InputHoldBegin
+InputHoldEnd
+Instance
+Interface
+IsA
+IsConfigured
+IsLimited
+IsLoaded
+Items
+Items of this rarity and above are kept. Off = rarity does not matter.
+Items to buy
+JSONDecode
+JSONEncode
+Joining the fight
+Jump
+JumpRequest
+Keep my best inventory pets
+Keep stolen cages in bag
+Keep this many tickets
+Keeping the stolen cage in your bag
+Key
+KeyCode
+Kind
+Kinds
+KnockedUntil
+LIVE: wave %d/%d %s%s · pumpkin %d/%d
+Last
+Last: 
+LeaveTreadmill
+Left
+Length
+Level
+Levels
+Limited
+LimitedKind
+List
+Loaded
+LocalPlayer
+Locked
+Log
+Looking for cages
+Luck
+MUTATION %s on %s, path %d
+Magnitude
+MainCredit
+Making room
+Max
+MaxEquipped
+Menu key
+Method
+Min
+Mini Games
+Mini game
+MiniGameAct
+MiniGameJoined
+MiniGameNextAt
+MiniGameState
+MiniGamesCage
+MiniShopConfig
+Minimum pet income
+Minimum rarity
+MoveTo
+Multi
+Mutated cage rarity
+Mutation
+MutationConfig
+Mutations
+My plot
+Name
+Name or UserId
+Nearest
+Never
+Never gifted: locked, favorite and limited pets, limited cages, and anything from a world the target has not reached.
+Never sold: locked, favorite and limited items, and what Auto Gift is about to give to its target.
+Never steal these
+Never-steal list ignored: nothing else on this path
+Next fight in %d:%02d
+Night
+Night is coming, staying home for %d s
+NightAt
+NightConfig
+NightEndsAt
+NightSeconds
+No
+No allowed cage on path %d right now, checking again in 45 s
+No allowed cage on the farthest path, back to the base for 45 s
+No collisions on all bases
+No fight data in this world
+No free stall for the carried cage
+No path unlocked for your speed
+No stall can take a cage right now, not going to steal
+No target set
+NoPets
+None
+Not in this server
+Note: 
+Nothing is sent while this is off.
+Nudges every 30 s (mouse/key, VirtualUser, and the game's own AFK timer, which sends AfkRejoin after 16 idle minutes).
+Oc
+Off
+Off: mutated pets and cages are kept, like the game's own Select All.
+Offer
+On (
+On (no layer answered)
+OnChanged
+OnClientEvent
+OnTreadmill
+One path lower
+Only items in your inventory: pets on a stall and placed cages are never gifted.
+Only mutated items
+Only steal if a cage can be placed
+Only walks to the shop once this many items can be sold, to save trips.
+OpenButton
+OpenCage
+Opening
+Opening a cage
+Opens placed cages as soon as their timer is over.
+OpensAt
+Optional. Your numeric Discord ID.
+Options
+Order
+Origin
+Own
+Owned
+POST
+Parent
+PassAutoCollect
+Paste a Discord webhook URL and the script posts to it directly. The URL is saved only in your local config file and is never sent anywhere except discord.com. Anyone holding that URL can post in that channel, so keep it to yourself.
+Path
+PathConfig
+Paths
+Per second. Empty or 0 = income does not matter. Accepts 500, 2.5K, 10M, 1T... When both filters are set, an item must match both.
+Periodic report
+Pet
+PetCash
+PetConfig
+PetLuck
+PetStats
+Pets
+Pets and cages below this rarity stay with you.
+Pets earning less than this per second stay with you (cages ignore it). Accepts 500, 2.5K, 10M, 1T...
+Pets kept on stalls
+Pets owned
+PetsSold
+Pick from this server
+Pick one or several paths. The script goes to the highest one you can reach with your speed. Auto = the farthest path you can reach.
+Place
+PlaceCage
+PlaceCage refused
+PlacePet
+Placed a 
+Placed pet %s on stall %d
+Placeholder
+Places
+Player
+PlayerAdded
+PlayerGiftConfig
+PlayerGiftNote
+PlayerRemoving
+PlayerScripts
+Players
+Plot
+Plot: 
+PlotConfig
+PlotId
+Plots
+Position
+Potion
+PotionKind
+Price
+PriceNow
+Priority mutations
+Pumpkin
+PumpkinHP
+PumpkinMax
+Puts a carried cage on a free stall of your plot (also finishes a delivery when Auto Steal is off).
+Puts pets from your inventory on free stalls (keeping the reserve below for cages) and swaps a stalled pet for a better one.
+Qa
+Qi
+Qualities
+Quality
+QualityConfig
+REBIRTH speed=%s cash=%s
+RaceRoadReady
+Radius
+Ramp
+Range
+Rarest first
+Rarities
+Rarity
+Ready
+ReadyAt
+Rebirth
+RebirthConfig
+Receiver mode
+Receiver mode is off · received %d
+Receiving spot
+Refresh
+Refused
+Refused: 
+Remotes
+ReplacePet
+ReplicatedStorage
+Report every
+ReportFields
+Ride and train
+RidePet
+RideSpeed
+Rides the pet with the highest ride speed.
+RidingPet
+RightControl
+Root
+RunService
+RunSpeed
+Running home
+SAP
+SAPAntiAfk
+SAPAutoCollect
+SAPAutoDaily
+SAPAutoEquipBest
+SAPAutoFight
+SAPAutoGift
+SAPAutoIndex
+SAPAutoOpen
+SAPAutoPlace
+SAPAutoPlacePets
+SAPAutoPotion
+SAPAutoRebirth
+SAPAutoRide
+SAPAutoSell
+SAPAutoStall
+SAPAutoSteal
+SAPAutoTalisman
+SAPAutoTapBoost
+SAPAutoTrail
+SAPAutoTrain
+SAPAutoTreadmill
+SAPAutofarm
+SAPGiftKeepBest
+SAPGiftMinIncome
+SAPGiftMinRarity
+SAPGiftMutatedOnly
+SAPGiftOrder
+SAPGiftReceiver
+SAPGiftReceiverSpot
+SAPGiftTarget
+SAPGiftWhat
+SAPKeepCagesInBag
+SAPMakeRoom
+SAPMenuKey
+SAPMiniChampion
+SAPMiniJoin
+SAPMiniKeepTickets
+SAPMiniShop
+SAPMiniShopItems
+SAPMutationRarity
+SAPMutations
+SAPNoclipBase
+SAPPetReserve
+SAPPetsKept
+SAPSellBelowIncome
+SAPSellBelowRarity
+SAPSellKeepBest
+SAPSellMinItems
+SAPSellMutated
+SAPSellWhat
+SAPSkip
+SAPStealNeedsRoom
+SAPTalismanMinGems
+SAPTalismanStats
+SAPTarget
+SAPWebhookDigest
+SAPWebhookEnabled
+SAPWebhookGiftGot
+SAPWebhookGiftSent
+SAPWebhookInterval
+SAPWebhookPing
+SAPWebhookReport
+SAPWebhookSold
+SAPWebhookUrl
+SAPZones
+SELL 
+STATUS %3.0fm %s | tread=%s ride=%s carry=%s | x=%.0f z=%.0f | spd=%.4g cash=%.3g gems=%s | pets=%d inv=%d cages=%d wait=%d | st=%d pl=%d op=%d cau=%d fail=%d col=%d | tut=%s | %s
+STOLEN %s path=%s ws=%.0f
+Safety
+Sale of %s item(s)
+Sales
+Same as the game: buys the one-time Equip Best unlock when you have the cash (EquipBestConfig.Cash), then fires EquipBest after each opened cage and once a minute.
+SecondBarn
+Seconds
+Self
+Sell
+Sell below rarity
+Sell pets earning less than
+SellConfig
+SellItems
+SellShop
+Selling
+Send a test message
+SendKeyEvent
+SendMouseMoveEvent
+Sent
+Sent %d · refused %d · received %d
+Sent %s %s to %s
+ServerDistance
+Set
+SetDigestMinutes
+SetEnabled
+SetKeybind
+SetPing
+SetReport
+SetReportMinutes
+SetScriptName
+SetUrl
+Settings
+Shape
+Shared
+Shops
+Sit
+Skips stealing while Auto Place Cage is off or no stall can take a cage (plot full and Auto Make Room off or nothing to store). The script trains instead.
+Sold
+Sold %s item(s) for $%s
+Sp
+Speed
+Speed %s (x%.2f) · base %s · cash %s · gems %s
+SpeedConfig
+SpeedNeeded
+Spending
+Spends tickets on the items picked below, up to each item's daily limit, keeping the reserve set under it. The shop only sells titles, talismans and limited pets once.
+Stall
+Stalls
+Stalls already hold path %s pets or better, you only reach path %d
+Stalls kept free for cages
+Stands on your treadmill when nothing else is to do (Auto Steal has priority).
+Starter
+Stat
+State
+Status
+Status: 
+Status: -
+Status: no webhook URL set
+Status: this executor has no HTTP request function
+StatusCode
+Steal
+Steal a Pet and Ride It
+Steal a Pet and Ride It is connected to this channel.
+Steal a Pet and Ride It | AKkiwi HUB
+Steal a Pet and Ride It · AKkiwi HUB · 
+Steal a Pet · 
+Steal-A-Pet-And-Ride-It
+StealPrompt
+Stealing 
+Step
+Stop
+Stop everything
+StorePet
+Subtitle
+Suffix
+Swapped stall %d for a better %s
+Switch
+Sx
+TRAVEL world 2 effective speed=%s
+Talisman types
+TalismanConfig
+TalismanSlots
+TalismanSpeed
+Talismans
+TapBoost
+Taps the bubble that pops up on screen while you train (training speed boost).
+Target
+Target player
+Target: %s · %d item(s) ready to gift
+Test
+Test message
+Text
+TextLabel
+Texts
+The shop never spends below this reserve.
+This many of your best inventory pets (by income) are never gifted. Pets on stalls are never gifted anyway.
+This many of your best inventory pets (by income) are never sold.
+Ticket
+Ticket shop
+TicketPotion
+TicketShop
+Tickets
+Tier
+TimedSpeed
+Title
+Today
+Toggle
+ToggleUIKeybind
+Tool
+Total
+Trail
+TrailConfig
+Trails
+Training
+Training until path %d (%s speed)
+TravelWorld
+Treadmill
+TreadmillConfig
+Turns off the collisions of everything on every plot (walls, rails, posts, stalls, props, signs) except the floor, the treadmill belt and the cash pad. Restored when switched off.
+Tutorial
+TutorialStep
+UnequipTools
+Update
+UpdateRate
+UpgradeBarn2
+UpgradePlot
+UpgradeTreadmill
+Upgrades
+Url
+UseAbility
+UserId
+UserInputService
+Username, display name or UserId of the account that receives. Saved in your config, so every bot keeps its main account.
+Vector2
+Vector3
+ViewportSize
+VirtualInputManager
+VirtualUser
+Wait
+Wait for at least
+WaitForChild
+Waiting for gifts (%d received)
+Waiting for the fight
+Waiting for the next fight
+WalkSpeed
+Walks next to the target (gifts only work within 18 studs) and gifts every item that passes the filters below, one every 1.7 s.
+Walks onto your cash pad once a minute when it holds money.
+Walks to a cage in the chosen zone, steals it and brings it home.
+Walks to the pumpkin of your world 40 s before the fight, then casts your equipped ability whenever a monster is in reach. Stops once the fight is over. Steal, train and the rest wait during the fight.
+Walks to the sell shop of your world and sells the inventory items that match the filters below. Pets on stalls and placed cages are never sold.
+Walkway
+Wave
+WaveConfig
+WaveMobController
+WaveMobs
+WaveName
+WaveState
+Waves
+Weakest first
+Webhook
+Webhook URL
+Webhook: set a valid webhook URL first
+Webhook: this executor has no HTTP request function
+What to gift
+What to sell
+What to send
+When Auto Steal has nothing left to gain (every stall already holds a pet from your best reachable path or better), rebirths if you can pay it. RESETS your cash, speed, treadmill level and trails.
+When every stall is taken, stores the weakest pet to free one for the carried cage.
+When farming is useless
+Where I stand
+Where I stand = the place you were when Receiver mode was turned on (or when you pick this option).
+Which items go first. Best first = highest income (cages after pets, rarest first). Useful when the target may leave.
+Which kinds to buy and wear. For each one the script buys the best tier you can pay and wears the best one you own.
+WinnerPotion
+World
+WorldConfig
+Worlds
+Yes
+Your best pets stay on this many stalls to keep earning cash; cages only use the other stalls.
+Zone
+Zones to search
+[%s,%$]
+[%s] %s
+
+^%s+
+^([%d%.]+)(%a*)$
+abs
+afClaims
+afEquipBest
+afPath
+afPriority
+afRebirth
+afStalls
+afTalismans
+afTrail
+afTreadmill
+afWorld2
+antiAfk
+appendfile
+application/json
+autoCollect
+autoDaily
+autoEquipBest
+autoFight
+autoGift
+autoIndex
+autoMiniChampion
+autoMiniJoin
+autoMiniShop
+autoOpen
+autoPlace
+autoPlacePets
+autoPotion
+autoRebirth
+autoRide
+autoSell
+autoStall
+autoSteal
+autoTalisman
+autoTapBoost
+autoTrail
+autoTrain
+autoTreadmill
+autofarm
+bell
+boss
+bossHp
+bossMax
+bought
+brain
+brain-error
+busy
+buy-
+buy-equipbest
+by AKkiwi
+cash
+casts
+caught
+ceil
+championStep
+claimed
+clear
+clock
+coins
+collect
+collects
+color
+concat
+content
+cos
+count
+daily
+date
+debug
+defer
+delay
+description
+embeds
+encode failed
+equip-
+equip-trail
+equipDirty
+equipbest-idle
+error
+failed
+failed: 
+fields
+fight
+find
+fireproximityprompt
+flag
+flagPrefix
+fluxus
+footer
+format
+free
+function
+game
+getconnections
+getgenv
+gift
+giftCages
+giftKeepBest
+giftMinIncome
+giftMinRarity
+giftMutatedOnly
+giftOrder
+giftPets
+giftTarget
+got
+gsub
+house
+http
+http_request
+https://
+https://discord.com/api/webhooks/...
+https://raw.githubusercontent.com/csgo1compte-cloud/RayVoid/refs/heads/main/AirFlow
+huge
+idle
+income
+index
+info
+inline
+input
+insert
+ipairs
+item
+joined
+keepCagesInBag
+kind
+last
+layout-dashboard
+left
+loadstring
+lower
+made with love (et du Luau) by AKkiwi
+makeRoom
+match
+math
+max
+min
+mini-buy-
+mini-champ-all
+mini-yes
+miniKeepTickets
+model
+module not found
+mutationRarity
+name
+new
+next
+next in %d:%02d
+no connection
+noclipBase
+note
+nothing sent yet
+number
+opened
+opensAt
+order
+os
+pack
+package
+pairs
+part
+path
+pathModel
+pcall
+petReserve
+pets
+petsKept
+pi
+placed
+placepets
+plot
+position
+prompt
+pumpkinHp
+pumpkinMax
+qa
+qi
+random
+rarity
+rarityOrder
+ready
+reason
+rebirth
+rebirths
+receiver
+receiverSpot
+receiverStep
+refresh
+refused
+remove
+reply
+request
+request error: 
+require
+require timed out
+reserved
+ride
+root
+sell
+sellBelowIncome
+sellBelowRarity
+sellCages
+sellKeepBest
+sellMinItems
+sellMutated
+sellPets
+sent
+sent %d embed(s) at %s
+setAnchorHere
+setSelected
+setthreadidentity
+settings
+shopStep
+sin
+skip
+skull
+sold
+sort
+spawn
+speed
+stall
+startedAt
+state
+status
+stealNeedsRoom
+step
+stolen
+string
+sub
+syn
+table
+talismanMinGems
+talismanStats
+tapped
+target
+task
+text
+timestamp
+title
+tonumber
+tostring
+total
+traceback
+trail-
+treadmill
+trending-up
+type
+typeof
+unload
+unpack
+useful
+useless
+username
+value
+wait
+waiting
+wantedMutations
+wave
+waves
+webhook
+workspace
+world2
+xpcall
+zones
+• %s ×%d
+• %s ×%d — $%s
+🥝 AKkiwi 🥝 -- si tu lis ca t'as casse mon obfuscateur, gg
