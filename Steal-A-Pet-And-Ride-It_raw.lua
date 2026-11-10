@@ -180,7 +180,6 @@ do
                 local knobCenterX  = w.knob.AbsolutePosition.X + (w.knob.AbsoluteSize.X * 0.5)
                 return knobCenterX > (trackCenterX + 1)
             end
-            -- Fallback jika knob adalah child di dalam salah satu target
             for _, t in ipairs(w.targets) do
                 if t.Parent and t.AbsoluteSize.X >= 26 then
                     for _, child in ipairs(t:GetDescendants()) do
@@ -200,7 +199,7 @@ do
     local isTogglingSlowMode = false
     local lastSlowToggleClock = 0
 
-    -- Mengklik tombol Slow Mode bawaan game dengan verifikasi perubahan state (tanpa mengubah WalkSpeed manual)
+    -- Mengklik tombol Slow Mode bawaan game dengan verifikasi perubahan state
     local function setSlowMode(desiredState, forceImmediate)
         if isTogglingSlowMode then return false end
         if not forceImmediate and (os.clock() - lastSlowToggleClock < 0.35) then return false end
@@ -231,7 +230,7 @@ do
                 return false
             end
 
-            -- Langkah 1: Gunakan getconnections satu per satu (Activated -> MouseButton1Click -> MouseButton1Down -> InputBegan)
+            -- Langkah 1: getconnections
             if type(getconnections) == "function" then
                 local sigNames = { "Activated", "MouseButton1Click", "MouseButton1Down", "MouseButton1Up" }
                 for _, target in ipairs(w.targets) do
@@ -256,7 +255,6 @@ do
                         end
                     end
 
-                    -- Cek juga InputBegan (sering dipakai untuk custom toggle Frame di Roblox)
                     local okIn, inSig = pcall(function() return target.InputBegan end)
                     if okIn and inSig then
                         local okConn, conns = pcall(getconnections, inSig)
@@ -298,7 +296,7 @@ do
                 end
             end
 
-            -- Langkah 2: Gunakan firesignal satu sinyal per percobaan (jangan sekaligus agar tidak double-click)
+            -- Langkah 2: firesignal
             if type(firesignal) == "function" then
                 local sigNames = { "Activated", "MouseButton1Click", "MouseButton1Down" }
                 for _, target in ipairs(w.targets) do
@@ -312,7 +310,7 @@ do
                 end
             end
 
-            -- Langkah 3: Gunakan VirtualInputManager tepat di titik tengah switch track
+            -- Langkah 3: VirtualInputManager
             if VirtualInputManager then
                 local clickBox = w.track or w.targets[1]
                 if clickBox and clickBox.AbsoluteSize.X > 0 then
@@ -399,12 +397,8 @@ do
         return false
     end
 
-    local function getShortestCageDist()
-        local char = LocalPlayer and LocalPlayer.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        if not hrp then return math.huge end
-
-        local shortest = math.huge
+    local function getAllSpawnedCages()
+        local list = {}
         local paths = workspace:FindFirstChild("Paths")
         if paths then
             for _, pathModel in ipairs(paths:GetChildren()) do
@@ -414,14 +408,95 @@ do
                         local root = cage:FindFirstChild("Root") or cage:FindFirstChildWhichIsA("BasePart")
                         local prompt = (root and root:FindFirstChild("StealPrompt")) or cage:FindFirstChild("StealPrompt", true)
                         if root and prompt and prompt.Enabled then
-                            local d = (hrp.Position - root.Position).Magnitude
-                            if d < shortest then shortest = d end
+                            table.insert(list, { model = cage, root = root, prompt = prompt, path = pathModel })
                         end
                     end
                 end
             end
         end
-        return shortest
+        return list
+    end
+
+    -- Mendeteksi telur spesifik yang sedang dituju oleh player (bukan sembarang telur di map)
+    local function getTargetEgg()
+        local char = LocalPlayer and LocalPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if not hrp or not hum then return nil, math.huge end
+
+        local allCages = getAllSpawnedCages()
+        if #allCages == 0 then return nil, math.huge end
+
+        -- 1. Cek target eksplisit yang diset di genv
+        if getgenv().SAP_CurrentTargetCage and getgenv().SAP_CurrentTargetCage.Parent then
+            local targetModel = getgenv().SAP_CurrentTargetCage
+            local targetRoot = targetModel:FindFirstChild("Root") or targetModel:FindFirstChildWhichIsA("BasePart")
+            if targetRoot then
+                local prompt = (targetRoot and targetRoot:FindFirstChild("StealPrompt")) or targetModel:FindFirstChild("StealPrompt", true)
+                local dist = (hrp.Position - targetRoot.Position).Magnitude
+                return { model = targetModel, root = targetRoot, prompt = prompt }, dist
+            end
+        end
+
+        -- 2. Cek Humanoid.WalkToPoint (saat script AI bergerak dengan MoveTo)
+        local walkToPoint = hum.WalkToPoint
+        if walkToPoint and walkToPoint.Magnitude > 1 then
+            for _, entry in ipairs(allCages) do
+                if entry.root and (entry.root.Position - walkToPoint).Magnitude <= 10 then
+                    local dist = (hrp.Position - entry.root.Position).Magnitude
+                    return entry, dist
+                end
+            end
+        end
+
+        -- 3. Cek state AKkiwi HUB (AKkiwi_StealAPet.brain.Doing)
+        local sap = getgenv().AKkiwi_StealAPet
+        local brainDoing = (sap and sap.brain and tostring(sap.brain.Doing or "")) or ""
+        local targetPathNum = tonumber(brainDoing:match("Going to path (%d+)"))
+
+        -- 4. Cek arah jalan karakter (Humanoid.MoveDirection) saat berjalan manual atau script
+        local moveDir = hum.MoveDirection
+        local isMoving = moveDir.Magnitude > 0.08
+
+        local bestEntry = nil
+        local bestDist = math.huge
+        local bestScore = -math.huge
+
+        for _, entry in ipairs(allCages) do
+            local offset = entry.root.Position - hrp.Position
+            local dist = offset.Magnitude
+
+            local onCorrectPath = true
+            if targetPathNum and entry.path and entry.path.Name ~= ("Path" .. targetPathNum) then
+                onCorrectPath = false
+            end
+
+            if onCorrectPath then
+                if isMoving then
+                    local dir = offset / (dist > 0 and dist or 1)
+                    local dot = moveDir:Dot(dir)
+                    -- Hanya telur yang searah di depan pergerakan player (dot > 0.65)
+                    if dot > 0.65 then
+                        local score = dot * 100 - dist
+                        if score > bestScore then
+                            bestScore = score
+                            bestEntry = entry
+                            bestDist = dist
+                        end
+                    end
+                else
+                    if dist < bestDist then
+                        bestDist = dist
+                        bestEntry = entry
+                    end
+                end
+            end
+        end
+
+        if bestEntry then
+            return bestEntry, bestDist
+        end
+        return nil, math.huge
     end
 
     -- Background Loop Pemantau Slow Mode
@@ -463,11 +538,26 @@ do
             -- 3. Jika sedang di luar Base (di Path)
             elseif not inBase and SlowCfg.NearEgg then
                 local targetDist = getEffectiveEggDist()
-                local dist = getShortestCageDist()
-                if dist <= targetDist then
-                    -- Sudah dekat dengan Egg -> Aktifkan Slow Mode agar tidak terpeleset!
-                    setSlowMode(true)
-                elseif dist > (targetDist + 8) then
+                local targetEgg, dist = getTargetEgg()
+
+                if targetEgg and targetEgg.root then
+                    local prompt = targetEgg.prompt
+                    local promptMaxDist = (prompt and prompt.MaxActivationDistance and prompt.MaxActivationDistance > 0) and prompt.MaxActivationDistance or 10
+                    -- Batas inner: zona interaksi/ambil telor (prompt muncul / hold E)
+                    local stealZoneDist = promptMaxDist + 2 -- sekitar 12 studs
+
+                    -- A. Jika sudah memasuki zona ambil telor (<= stealZoneDist) -> Matikan Slow Mode!
+                    if dist <= stealZoneDist then
+                        setSlowMode(false)
+                    -- B. Jika sedang mendekati telor (stealZoneDist < dist <= targetDist) -> Aktifkan Slow Mode (Anti-Sliding / Rem)!
+                    elseif dist <= targetDist then
+                        setSlowMode(true)
+                    -- C. Jika masih jauh dari telor (> targetDist) -> Matikan Slow Mode!
+                    else
+                        setSlowMode(false)
+                    end
+                else
+                    -- Tidak sedang menuju ke telor mana pun (misal jalan pulang atau gerak bebas) -> Matikan Slow Mode!
                     setSlowMode(false)
                 end
             end
@@ -497,7 +587,7 @@ do
             if createToggle then
                 createToggle(tab, {
                     Name = "Auto Slow Mode Near Egg",
-                    Desc = "Otomatis ON Slow Mode saat dekat Egg agar tidak terpeleset (sliding), dan otomatis OFF begitu mulai Hold E.",
+                    Desc = "Otomatis ON Slow Mode saat mendekati Egg agar tidak sliding, dan otomatis OFF saat memasuki zona ambil telor.",
                     Default = SlowCfg.NearEgg,
                     Flag = "SAPSlowNearEgg",
                     Callback = function(v) SlowCfg.NearEgg = v end,
@@ -506,7 +596,7 @@ do
             if createSlider then
                 createSlider(tab, {
                     Name = "Slow Mode Egg Distance (0 = Default)",
-                    Desc = "0 = Default (28 studs). Geser di atas 0 atau klik angkanya untuk custom jarak studs.",
+                    Desc = "0 = Default (28 studs). Jarak pengereman saat menuju telor.",
                     Min = 0,
                     Max = 100,
                     Step = 1,

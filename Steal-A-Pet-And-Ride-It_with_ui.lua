@@ -210,13 +210,83 @@ local function getAllSpawnedCages()
                     local root = cage:FindFirstChild("Root") or cage:FindFirstChildWhichIsA("BasePart")
                     local prompt = (root and root:FindFirstChild("StealPrompt")) or cage:FindFirstChild("StealPrompt", true)
                     if root and prompt and prompt.Enabled then
-                        table.insert(list, { model = cage, root = root, prompt = prompt })
+                        table.insert(list, { model = cage, root = root, prompt = prompt, path = pathModel })
                     end
                 end
             end
         end
     end
     return list
+end
+
+-- Mendeteksi telur spesifik yang sedang dituju oleh player (bukan sembarang telur di map)
+local function getTargetEgg()
+    local char = LocalPlayer and LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if not hrp or not hum then return nil, math.huge end
+
+    local allCages = getAllSpawnedCages()
+    if #allCages == 0 then return nil, math.huge end
+
+    -- 1. Cek target eksplisit jika diset oleh script AutoSteal
+    if getgenv().SAP_CurrentTargetCage and getgenv().SAP_CurrentTargetCage.Parent then
+        local targetModel = getgenv().SAP_CurrentTargetCage
+        local targetRoot = targetModel:FindFirstChild("Root") or targetModel:FindFirstChildWhichIsA("BasePart")
+        if targetRoot then
+            local prompt = (targetRoot and targetRoot:FindFirstChild("StealPrompt")) or targetModel:FindFirstChild("StealPrompt", true)
+            local dist = (hrp.Position - targetRoot.Position).Magnitude
+            return { model = targetModel, root = targetRoot, prompt = prompt }, dist
+        end
+    end
+
+    -- 2. Cek Humanoid.WalkToPoint (saat script AI bergerak menggunakan Humanoid:MoveTo)
+    local walkToPoint = hum.WalkToPoint
+    if walkToPoint and walkToPoint.Magnitude > 1 then
+        for _, entry in ipairs(allCages) do
+            if entry.root and (entry.root.Position - walkToPoint).Magnitude <= 10 then
+                local dist = (hrp.Position - entry.root.Position).Magnitude
+                return entry, dist
+            end
+        end
+    end
+
+    -- 3. Cek arah jalan karakter (Humanoid.MoveDirection) saat berjalan manual atau script
+    local moveDir = hum.MoveDirection
+    local isMoving = moveDir.Magnitude > 0.08
+
+    local bestEntry = nil
+    local bestDist = math.huge
+    local bestScore = -math.huge
+
+    for _, entry in ipairs(allCages) do
+        local offset = entry.root.Position - hrp.Position
+        local dist = offset.Magnitude
+
+        if isMoving then
+            local dir = offset / (dist > 0 and dist or 1)
+            local dot = moveDir:Dot(dir)
+            -- Hanya telur yang searah di depan pergerakan player (dot > 0.65)
+            if dot > 0.65 then
+                local score = dot * 100 - dist
+                if score > bestScore then
+                    bestScore = score
+                    bestEntry = entry
+                    bestDist = dist
+                end
+            end
+        else
+            if dist < bestDist then
+                bestDist = dist
+                bestEntry = entry
+            end
+        end
+    end
+
+    if bestEntry then
+        return bestEntry, bestDist
+    end
+    return nil, math.huge
 end
 
 local function getNearestCage()
@@ -585,10 +655,25 @@ task.spawn(function()
             end
         elseif not inBase and Settings.SlowModeNearEgg then
             local targetDist = getEffectiveEggDist()
-            local nearestEntry, dist = getNearestCage()
-            if nearestEntry and dist <= targetDist then
-                setSlowMode(true)
-            elseif dist > (targetDist + 8) then
+            local targetEgg, dist = getTargetEgg()
+
+            if targetEgg and targetEgg.root then
+                local prompt = targetEgg.prompt
+                local promptMaxDist = (prompt and prompt.MaxActivationDistance and prompt.MaxActivationDistance > 0) and prompt.MaxActivationDistance or 10
+                local stealZoneDist = promptMaxDist + 2 -- zona interaksi/ambil telor (~12 studs)
+
+                -- A. Player sudah memasuki zona ambil telor (<= stealZoneDist) -> Matikan Slow Mode!
+                if dist <= stealZoneDist then
+                    setSlowMode(false)
+                -- B. Player sedang mendekati telor (stealZoneDist < dist <= targetDist) -> Aktifkan Slow Mode!
+                elseif dist <= targetDist then
+                    setSlowMode(true)
+                -- C. Masih jauh dari telor (> targetDist) -> Matikan Slow Mode!
+                else
+                    setSlowMode(false)
+                end
+            else
+                -- Tidak sedang menuju ke telor mana pun -> Matikan Slow Mode!
                 setSlowMode(false)
             end
         end
@@ -706,6 +791,7 @@ task.spawn(function()
         if Settings.AutoSteal and not isCarryingCage() and RootPart and Humanoid and Humanoid.Health > 0 then
             local entry = getNearestCage()
             if entry and entry.root and entry.prompt then
+                getgenv().SAP_CurrentTargetCage = entry.model
                 isGoingToSteal = true
                 if isInSafeZone() and (Settings.SlowModeInBase or Settings.SlowModeNearEgg) then
                     setSlowMode(false)
@@ -733,6 +819,7 @@ task.spawn(function()
                         pcall(fireproximityprompt, entry.prompt)
                     end
                     isHoldingStealPrompt = false
+                    getgenv().SAP_CurrentTargetCage = nil
 
                     task.wait(0.2)
                     local myPlot = getMyPlot()
@@ -741,11 +828,15 @@ task.spawn(function()
                             return Settings.AutoSteal
                         end)
                     end
+                else
+                    getgenv().SAP_CurrentTargetCage = nil
                 end
             else
+                getgenv().SAP_CurrentTargetCage = nil
                 isGoingToSteal = false
             end
         else
+            getgenv().SAP_CurrentTargetCage = nil
             isGoingToSteal = false
         end
 

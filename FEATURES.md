@@ -7,7 +7,11 @@ Dokumentasi lengkap mengenai fitur-fitur yang sudah diimplementasikan, dibersihk
 ## 🚀 Ringkasan Fitur yang Sudah Aktif
 
 ### 1. 🥷 Auto Steal, Cage Management & Smart Slow Mode (Anti-Sliding)
-* **Auto Slow Mode Near Egg:** Otomatis menyalakan tombol **Slow Mode** bawaan game ketika jarak karakter berada dalam radius dekat (`SlowModeEggDist`, default `28 studs`) dari egg/cage yang akan diambil agar karakter tidak terpeleset (*sliding*), lalu **otomatis mematikan Slow Mode** tepat pada saat karakter mulai **Hold E** (`PromptButtonHoldBegan`) agar karakter langsung lari kecepatan penuh menghindari monster.
+* **Smart Auto Slow Mode Near Egg (Target Egg Only + Steal Zone Auto-Off):** 
+  * **Target Egg Only:** Hanya mengaktifkan Slow Mode ke telur yang *sedang dituju* oleh pergerakan karakter (bukan ke semua telur di map), sehingga karakter tidak melambat saat sekadar berlari melewati telur lain.
+  * **Pengereman Halus (Deceleration):** Menyalakan tombol Slow Mode saat jarak karakter berada di antara zona ambil (`~12 studs`) dan jarak target (`SlowModeEggDist`, default `28 studs`).
+  * **Auto-Off di Zona Ambil Telor:** Begitu karakter melangkah memasuki zona interaksi telur (`<= 12 studs` / prompt range), Slow Mode **otomatis langsung mati (OFF)** agar karakter siap mengambil telur dan kabur dengan kecepatan penuh tanpa tertangkap monster.
+  * **Fail-safe Hold E & Carrying:** Begitu mulai menekan Hold E atau membawa telur, Slow Mode langsung dipastikan mati (OFF).
 * **Auto Slow Mode In Base:** Otomatis menyalakan **Slow Mode** setelah karakter terdeteksi berada di dalam Safe Zone / Base selama **2 detik** berturut-turut, dan otomatis mematikannya kembali saat karakter hendak keluar mencuri egg.
 * **Auto Steal Cage (Natural Walk):** Otomatis mendeteksi kandang (*cage*) terdekat di `workspace.Paths`, berjalan kaki ke lokasinya (`Humanoid:MoveTo`), mengeksekusi `StealPrompt`, lalu berjalan kembali membawa kandang ke plot milik Anda (tanpa teleportasi).
 * **Auto Place Cage:** Otomatis menaruh kandang yang sedang dibawa ke slot kandang (*stall*) kosong di plot Anda menggunakan remote `PlaceCage`.
