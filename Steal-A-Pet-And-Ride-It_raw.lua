@@ -557,7 +557,7 @@ do
                         setSlowMode(false)
                     end
                 else
-                    -- Tidak sedang menuju ke telor mana pun (misal jalan pulang atau gerak bebas) -> Matikan Slow Mode!
+                    -- Tidak sedang menuju ke telor mana pun -> Matikan Slow Mode!
                     setSlowMode(false)
                 end
             end
