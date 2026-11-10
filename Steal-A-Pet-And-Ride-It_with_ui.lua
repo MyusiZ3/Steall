@@ -3,30 +3,35 @@
     Khusus untuk Delta Executor (Mobile & PC)
 ]]
 
-local UI_URL = "https://raw.githubusercontent.com/csgo1compte-cloud/RayVoidUi/refs/heads/main/RayVoid"
+local UI_URL = "https://raw.githubusercontent.com/csgo1compte-cloud/RayVoid/refs/heads/main/AirFlow"
 local okUi, Ui = pcall(function()
     return loadstring(game:HttpGet(UI_URL))()
 end)
 
 if not okUi or not Ui then
-    warn("[Steall] Gagal memuat UI Library, menjalankan script mode background.")
+    warn("[Steall] Gagal memuat AirFlow UI Library.")
     return
 end
 
+pcall(function()
+    if Ui.SetScriptName then Ui:SetScriptName("Steal a Pet and Ride It") end
+end)
+
 local Window = Ui:CreateWindow({
-    Name = "Steal a Pet & Ride It",
-    LoadingTitle = "Steall Hub",
-    LoadingSubtitle = "Delta Executor Edition",
-    ConfigurationSaving = { Enabled = true, FolderName = "SteallHub", FileName = "config" },
+    Name = "Steal a Pet & Ride It | Steall Hub",
+    Subtitle = "Clean Open-Source Edition",
+    ToggleUIKeybind = Enum.KeyCode.RightControl,
+    OpenButton = { Enabled = true, Title = "Steall" },
+    ConfigurationSaving = { Enabled = true, FolderName = "SteallHub", FileName = "StealAPet" },
 })
 
 -- Services
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
+local GuiService = game:GetService("GuiService")
 
 local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
@@ -40,8 +45,8 @@ LocalPlayer.CharacterAdded:Connect(function(char)
 end)
 
 -- Remotes Reference (Sesuai struktur asli ReplicatedStorage.Shared.Remotes)
-local Shared = ReplicatedStorage:FindFirstChild("Shared")
-local Remotes = (Shared and Shared:FindFirstChild("Remotes")) or ReplicatedStorage:WaitForChild("Remotes", 5) or ReplicatedStorage
+local Shared = ReplicatedStorage:WaitForChild("Shared", 5)
+local Remotes = (Shared and Shared:WaitForChild("Remotes", 5)) or ReplicatedStorage:FindFirstChild("Remotes") or ReplicatedStorage
 
 local function getRemote(name)
     return Remotes:FindFirstChild(name, true) or ReplicatedStorage:FindFirstChild(name, true)
@@ -58,6 +63,7 @@ local ClaimAllIndexRemote = getRemote("ClaimAllIndexRewards")
 local ChampionClaimRemote = getRemote("ChampionClaim")
 local BuyTrailRemote      = getRemote("BuyTrail")
 local EquipTrailRemote    = getRemote("EquipTrail")
+local TapBoostRemote      = getRemote("TapBoost")
 
 local DEFAULT_EGG_DIST = 28
 
@@ -91,7 +97,6 @@ end
 
 -- ================= GAME HELPERS =================
 
--- Mendapatkan Plot milik pemain (Sesuai struktur workspace.Hub.Plots.Plot{PlotId})
 local function getMyPlot()
     local plotId = LocalPlayer:GetAttribute("PlotId")
     local hub = workspace:FindFirstChild("Hub")
@@ -102,50 +107,98 @@ local function getMyPlot()
         local myPlot = plots:FindFirstChild("Plot" .. tostring(plotId))
         if myPlot then return myPlot end
     end
+    return nil
+end
 
-    for _, plot in ipairs(plots:GetChildren()) do
-        local owner = plot:FindFirstChild("Owner")
-        if owner and (owner.Value == LocalPlayer or owner.Value == LocalPlayer.Name) then
-            return plot
+local function getOwnedStalls()
+    local myPlot = getMyPlot()
+    if not myPlot then return {} end
+    local list = {}
+    for _, barnName in ipairs({ "Barn", "Barn2" }) do
+        local barn = myPlot:FindFirstChild(barnName)
+        local stalls = barn and barn:FindFirstChild("Stalls")
+        if stalls then
+            for _, s in ipairs(stalls:GetChildren()) do
+                if s:GetAttribute("Owned") == true then
+                    local idx = tonumber(s:GetAttribute("Index"))
+                    local part = s:IsA("BasePart") and s or s:FindFirstChildWhichIsA("BasePart", true)
+                    if idx and part then
+                        table.insert(list, { index = idx, part = part, model = s })
+                    end
+                end
+            end
         end
-        if plot:GetAttribute("Owner") == LocalPlayer.Name or plot:GetAttribute("OwnerId") == LocalPlayer.UserId then
-            return plot
+    end
+    table.sort(list, function(a, b) return a.index < b.index end)
+    return list
+end
+
+local function isStallOccupied(stallIndex)
+    local petsFolder = LocalPlayer:FindFirstChild("Pets")
+    if petsFolder then
+        for _, pet in ipairs(petsFolder:GetChildren()) do
+            if tonumber(pet:GetAttribute("Stall")) == stallIndex then
+                return true
+            end
+        end
+    end
+    local cagesFolder = LocalPlayer:FindFirstChild("Cages")
+    if cagesFolder then
+        for _, cage in ipairs(cagesFolder:GetChildren()) do
+            if tonumber(cage:GetAttribute("Stall")) == stallIndex then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local function getFreeStall()
+    for _, entry in ipairs(getOwnedStalls()) do
+        if not isStallOccupied(entry.index) then
+            return entry
         end
     end
     return nil
 end
 
--- Mengecek apakah pemain sedang membawa Cage/Egg
 local function isCarryingCage()
-    if LocalPlayer:GetAttribute("CarryingCage") then return true end
+    local attr = LocalPlayer:GetAttribute("CarryingCage")
+    if attr ~= nil and attr ~= false and attr ~= "" then return true end
     if Character and Character:GetAttribute("CarryingCage") then return true end
     return false
 end
 
--- Mengecek apakah pemain berada di Safe Zone / Base
+local function equipCarriedCageTool()
+    if not Character or not Humanoid then return end
+    if Character:FindFirstChildOfClass("Tool") then return end
+    local backpack = LocalPlayer:FindFirstChild("Backpack")
+    if backpack then
+        local tool = backpack:FindFirstChildOfClass("Tool")
+        if tool then
+            pcall(function() Humanoid:EquipTool(tool) end)
+            task.wait(0.2)
+        end
+    end
+end
+
 local function isInSafeZone()
     if LocalPlayer:GetAttribute("InSafeZone") == true then return true end
+    if LocalPlayer:GetAttribute("OnTreadmill") == true then return true end
     if Character and Character:GetAttribute("InSafeZone") == true then return true end
 
     if not RootPart then return false end
     local myPlot = getMyPlot()
-    if myPlot then
-        local plotPos = myPlot:GetPivot().Position
-        if (RootPart.Position - plotPos).Magnitude <= 65 then
-            return true
-        end
+    if myPlot and (RootPart.Position - myPlot:GetPivot().Position).Magnitude <= 75 then
+        return true
     end
     local hub = workspace:FindFirstChild("Hub")
-    if hub then
-        local hubPos = hub:GetPivot().Position
-        if (RootPart.Position - hubPos).Magnitude <= 90 then
-            return true
-        end
+    if hub and (RootPart.Position - hub:GetPivot().Position).Magnitude <= 95 then
+        return true
     end
     return false
 end
 
--- Mencari semua Cage/Egg yang aktif di semua Path (workspace.Paths.PathX.Cages)
 local function getAllSpawnedCages()
     local list = {}
     local paths = workspace:FindFirstChild("Paths")
@@ -154,23 +207,12 @@ local function getAllSpawnedCages()
             local cagesFolder = pathModel:FindFirstChild("Cages")
             if cagesFolder then
                 for _, cage in ipairs(cagesFolder:GetChildren()) do
-                    local root = cage:FindFirstChild("Root") or cage:FindFirstChild("HumanoidRootPart") or cage:FindFirstChildWhichIsA("BasePart")
-                    local prompt = (root and root:FindFirstChild("StealPrompt")) or cage:FindFirstChild("StealPrompt", true) or cage:FindFirstChildWhichIsA("ProximityPrompt", true)
+                    local root = cage:FindFirstChild("Root") or cage:FindFirstChildWhichIsA("BasePart")
+                    local prompt = (root and root:FindFirstChild("StealPrompt")) or cage:FindFirstChild("StealPrompt", true)
                     if root and prompt and prompt.Enabled then
                         table.insert(list, { model = cage, root = root, prompt = prompt })
                     end
                 end
-            end
-        end
-    end
-    -- Fallback jika ada folder Cages langsung di workspace
-    local fallbackFolder = workspace:FindFirstChild("Cages") or workspace:FindFirstChild("SpawnedCages")
-    if fallbackFolder then
-        for _, cage in ipairs(fallbackFolder:GetChildren()) do
-            local root = cage:FindFirstChild("Root") or cage:FindFirstChildWhichIsA("BasePart")
-            local prompt = cage:FindFirstChildWhichIsA("ProximityPrompt", true)
-            if root and prompt and prompt.Enabled then
-                table.insert(list, { model = cage, root = root, prompt = prompt })
             end
         end
     end
@@ -193,49 +235,133 @@ local function getNearestCage()
 end
 
 -- ================= SLOW MODE CONTROLLER =================
-local cachedSlowButton = nil
-local cachedSlowContainer = nil
-local lastSlowToggleClock = 0
+local IGNORED_GUI_NAMES = {
+    AirflowUI = true,
+    Rayfield  = true,
+    RayVoid   = true,
+    SteallHub = true,
+}
 
--- Mencari tombol "Slow Mode" bawaan game di PlayerGui
-local function findSlowModeButton()
-    if cachedSlowButton and cachedSlowButton.Parent then
-        return cachedSlowButton, cachedSlowContainer
+local cachedWidget = nil
+
+local function findSlowModeWidget()
+    if cachedWidget and cachedWidget.label and cachedWidget.label.Parent and cachedWidget.label.AbsoluteSize.X > 5 then
+        return cachedWidget
     end
-    local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
-    if not playerGui then return nil, nil end
+
+    local playerGui = LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui")
+    if not playerGui then return nil end
+
+    local labelObj = nil
+    local screenGui = nil
 
     for _, desc in ipairs(playerGui:GetDescendants()) do
-        if (desc:IsA("TextLabel") or desc:IsA("TextButton")) and desc.Text:lower():find("slow mode") then
-            local container = desc.Parent
-            if container then
-                -- Cari GuiButton di dalam container yang sama (tombol switch di sebelah kiri label Slow Mode)
-                for _, child in ipairs(container:GetDescendants()) do
-                    if child:IsA("GuiButton") then
-                        cachedSlowButton = child
-                        cachedSlowContainer = container
-                        return cachedSlowButton, cachedSlowContainer
-                    end
-                end
-                if container:IsA("GuiButton") then
-                    cachedSlowButton = container
-                    cachedSlowContainer = container
-                    return cachedSlowButton, cachedSlowContainer
-                end
-                if container.Parent and container.Parent:IsA("GuiButton") then
-                    cachedSlowButton = container.Parent
-                    cachedSlowContainer = container.Parent
-                    return cachedSlowButton, cachedSlowContainer
+        if desc:IsA("TextLabel") or desc:IsA("TextButton") then
+            local sg = desc:FindFirstAncestorOfClass("ScreenGui")
+            if not (sg and IGNORED_GUI_NAMES[sg.Name]) then
+                local rawText = tostring(desc.Text or "")
+                local cleanText = rawText:gsub("<[^>]+>", ""):match("^%s*(.-)%s*$"):lower()
+                if cleanText == "slow mode" and desc.Visible and desc.AbsoluteSize.X > 5 then
+                    labelObj = desc
+                    screenGui = sg or playerGui
+                    break
                 end
             end
         end
     end
-    return nil, nil
+
+    if not labelObj then
+        return nil
+    end
+
+    local lblCenterY = labelObj.AbsolutePosition.Y + (labelObj.AbsoluteSize.Y * 0.5)
+    local lblLeftX   = labelObj.AbsolutePosition.X
+
+    local rowObjects = {}
+    local targets = {}
+    local seenTargets = {}
+
+    local function addTarget(obj)
+        if obj and not seenTargets[obj] then
+            seenTargets[obj] = true
+            table.insert(targets, obj)
+        end
+    end
+
+    local searchRoot = (labelObj.Parent and labelObj.Parent.Parent and labelObj.Parent.Parent.Parent) or screenGui
+    for _, obj in ipairs(searchRoot:GetDescendants()) do
+        if obj:IsA("GuiObject") and obj.Visible and obj.AbsoluteSize.X >= 8 and obj.AbsoluteSize.Y >= 8 and obj.AbsoluteSize.Y <= 95 then
+            local cy = obj.AbsolutePosition.Y + (obj.AbsoluteSize.Y * 0.5)
+            if math.abs(cy - lblCenterY) <= 28 then
+                if obj.AbsolutePosition.X <= lblLeftX + 20 and (obj.AbsolutePosition.X + obj.AbsoluteSize.X) >= (lblLeftX - 190) then
+                    table.insert(rowObjects, obj)
+                end
+            end
+        end
+    end
+
+    local trackObj = nil
+    local bestTrackArea = 0
+    for _, obj in ipairs(rowObjects) do
+        if obj ~= labelObj and (obj.AbsolutePosition.X + obj.AbsoluteSize.X) <= (lblLeftX + 20) then
+            if obj.AbsoluteSize.X >= 26 and obj.AbsoluteSize.X <= 140 and obj.AbsoluteSize.Y >= 14 and obj.AbsoluteSize.Y <= 65 then
+                if obj.AbsoluteSize.X >= obj.AbsoluteSize.Y * 1.15 then
+                    local area = obj.AbsoluteSize.X * obj.AbsoluteSize.Y
+                    if area > bestTrackArea then
+                        bestTrackArea = area
+                        trackObj = obj
+                    end
+                end
+            end
+        end
+    end
+
+    local knobObj = nil
+    if trackObj then
+        for _, obj in ipairs(rowObjects) do
+            if obj ~= trackObj and obj ~= labelObj and not obj:IsA("TextLabel") then
+                if obj.AbsoluteSize.X >= 8 and obj.AbsoluteSize.X <= (trackObj.AbsoluteSize.X * 0.82) and obj.AbsoluteSize.Y >= 8 and obj.AbsoluteSize.Y <= (trackObj.AbsoluteSize.Y * 1.15) then
+                    local kcx = obj.AbsolutePosition.X + (obj.AbsoluteSize.X * 0.5)
+                    if kcx >= (trackObj.AbsolutePosition.X - 4) and kcx <= (trackObj.AbsolutePosition.X + trackObj.AbsoluteSize.X + 4) then
+                        knobObj = obj
+                        break
+                    end
+                end
+            end
+        end
+    end
+
+    for _, obj in ipairs(rowObjects) do
+        if obj:IsA("GuiButton") then
+            addTarget(obj)
+        end
+    end
+    if trackObj then
+        addTarget(trackObj)
+        for _, child in ipairs(trackObj:GetDescendants()) do
+            if child:IsA("GuiButton") then addTarget(child) end
+        end
+        if trackObj.Parent and trackObj.Parent:IsA("GuiObject") and trackObj.Parent.AbsoluteSize.Y <= 95 then
+            addTarget(trackObj.Parent)
+        end
+    end
+    if knobObj then addTarget(knobObj) end
+    if labelObj.Parent and labelObj.Parent:IsA("GuiObject") and labelObj.Parent.AbsoluteSize.Y <= 95 then
+        addTarget(labelObj.Parent)
+    end
+    addTarget(labelObj)
+
+    cachedWidget = {
+        label     = labelObj,
+        track     = trackObj,
+        knob      = knobObj,
+        targets   = targets,
+        screenGui = screenGui,
+    }
+    return cachedWidget
 end
 
--- Mengecek apakah Slow Mode di game sedang ON atau OFF
 local function isSlowModeActive()
-    -- 1. Cek Attribute jika game menyimpannya di LocalPlayer / Character
     local attr = LocalPlayer:GetAttribute("SlowMode")
     if type(attr) == "boolean" then return attr end
     if Character then
@@ -243,87 +369,180 @@ local function isSlowModeActive()
         if type(charAttr) == "boolean" then return charAttr end
     end
 
-    -- 2. Cek posisi knob biru di dalam tombol Slow Mode UI
-    -- Saat OFF: knob biru berada di sebelah kiri (Position.X.Scale < 0.35)
-    -- Saat ON: knob biru bergeser ke sebelah kanan (Position.X.Scale >= 0.35)
-    local btn, container = findSlowModeButton()
-    local searchRoot = btn or container
-    if searchRoot then
-        for _, child in ipairs(searchRoot:GetDescendants()) do
-            if child:IsA("Frame") or child:IsA("ImageLabel") or child:IsA("TextButton") or child:IsA("ImageButton") then
-                if child ~= searchRoot and child.Size.X.Scale > 0 and child.Size.X.Scale < 0.85 then
-                    return child.Position.X.Scale >= 0.35 or child.Position.X.Offset > 15
+    local w = findSlowModeWidget()
+    if w then
+        if w.track and w.knob and w.track.Parent and w.knob.Parent and w.track.AbsoluteSize.X > 0 then
+            local trackCenterX = w.track.AbsolutePosition.X + (w.track.AbsoluteSize.X * 0.5)
+            local knobCenterX  = w.knob.AbsolutePosition.X + (w.knob.AbsoluteSize.X * 0.5)
+            return knobCenterX > (trackCenterX + 1)
+        end
+        for _, t in ipairs(w.targets) do
+            if t.Parent and t.AbsoluteSize.X >= 26 then
+                for _, child in ipairs(t:GetDescendants()) do
+                    if child:IsA("GuiObject") and not child:IsA("TextLabel") and child.AbsoluteSize.X >= 8 and child.AbsoluteSize.X <= (t.AbsoluteSize.X * 0.82) then
+                        local tcx = t.AbsolutePosition.X + (t.AbsoluteSize.X * 0.5)
+                        local kcx = child.AbsolutePosition.X + (child.AbsoluteSize.X * 0.5)
+                        return kcx > (tcx + 1)
+                    end
                 end
             end
         end
     end
 
-    -- 3. Fallback dari WalkSpeed aktual karakter (ketika punya speed tinggi, Slow Mode menurunkan WalkSpeed)
-    if Humanoid then
-        return Humanoid.WalkSpeed <= 38
-    end
     return false
 end
 
--- Menekan tombol Slow Mode bawaan game tanpa memodifikasi WalkSpeed secara paksa
-local function setSlowMode(desiredState)
-    if os.clock() - lastSlowToggleClock < 0.35 then return end
+local isTogglingSlowMode = false
+local lastSlowToggleClock = 0
+
+local function setSlowMode(desiredState, forceImmediate)
+    if isTogglingSlowMode then return false end
+    if not forceImmediate and (os.clock() - lastSlowToggleClock < 0.35) then return false end
+
     local currentState = isSlowModeActive()
-    if currentState == desiredState then return end
+    if not forceImmediate and currentState == desiredState then
+        return true
+    end
 
-    local btn = findSlowModeButton()
-    if not btn then return end
+    local w = findSlowModeWidget()
+    if not w or #w.targets == 0 then
+        return false
+    end
 
+    isTogglingSlowMode = true
     lastSlowToggleClock = os.clock()
 
-    -- Metode 1: firesignal (standar di Delta Executor)
-    local fired = false
-    if firesignal then
-        pcall(function()
-            firesignal(btn.MouseButton1Click)
-            firesignal(btn.Activated)
-            fired = true
-        end)
-    end
+    local ok, result = pcall(function()
+        local beforeWS = (Humanoid and Humanoid.WalkSpeed) or 0
+        local beforeKnobX = (w.knob and w.knob.AbsolutePosition.X) or 0
 
-    -- Metode 2: getconnections (jika firesignal tidak memicu handler)
-    if not fired and getconnections then
-        pcall(function()
-            for _, conn in ipairs(getconnections(btn.MouseButton1Click)) do
-                if conn.Function then task.spawn(conn.Function) fired = true end
-            end
-            for _, conn in ipairs(getconnections(btn.Activated)) do
-                if conn.Function then task.spawn(conn.Function) fired = true end
-            end
-        end)
-    end
+        local function didFlip()
+            if isSlowModeActive() == desiredState then return true end
+            if w.knob and math.abs(w.knob.AbsolutePosition.X - beforeKnobX) >= 3 then return true end
+            if Humanoid and math.abs(Humanoid.WalkSpeed - beforeWS) >= 2 then return true end
+            return false
+        end
 
-    -- Metode 3: VirtualInputManager (klik koordinat tombol di layar)
-    if not fired and VirtualInputManager and btn.AbsoluteSize.X > 0 then
-        pcall(function()
-            local guiInset = game:GetService("GuiService"):GetGuiInset()
-            local cx = btn.AbsolutePosition.X + (btn.AbsoluteSize.X / 2)
-            local cy = btn.AbsolutePosition.Y + (btn.AbsoluteSize.Y / 2) + guiInset.Y
-            VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, true, game, 1)
-            task.wait(0.05)
-            VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, false, game, 1)
-        end)
-    end
+        if type(getconnections) == "function" then
+            local sigNames = { "Activated", "MouseButton1Click", "MouseButton1Down", "MouseButton1Up" }
+            for _, target in ipairs(w.targets) do
+                for _, sigName in ipairs(sigNames) do
+                    local okSig, sig = pcall(function() return target[sigName] end)
+                    if okSig and sig then
+                        local okConn, conns = pcall(getconnections, sig)
+                        if okConn and type(conns) == "table" and #conns > 0 then
+                            for _, conn in ipairs(conns) do
+                                local firedConn = false
+                                if type(conn.Fire) == "function" then
+                                    local s = pcall(function() conn:Fire() end)
+                                    firedConn = s
+                                end
+                                if not firedConn and type(conn.Function) == "function" then
+                                    pcall(task.spawn, conn.Function)
+                                end
+                            end
+                            task.wait(0.14)
+                            if didFlip() then return true end
+                        end
+                    end
+                end
+
+                local okIn, inSig = pcall(function() return target.InputBegan end)
+                if okIn and inSig then
+                    local okConn, conns = pcall(getconnections, inSig)
+                    if okConn and type(conns) == "table" and #conns > 0 then
+                        local pos = Vector3.new(
+                            target.AbsolutePosition.X + target.AbsoluteSize.X * 0.5,
+                            target.AbsolutePosition.Y + target.AbsoluteSize.Y * 0.5,
+                            0
+                        )
+                        local fakeMouse = {
+                            UserInputType = Enum.UserInputType.MouseButton1,
+                            UserInputState = Enum.UserInputState.Begin,
+                            Position = pos,
+                            KeyCode = Enum.KeyCode.Unknown,
+                        }
+                        local fakeTouch = {
+                            UserInputType = Enum.UserInputType.Touch,
+                            UserInputState = Enum.UserInputState.Begin,
+                            Position = pos,
+                            KeyCode = Enum.KeyCode.Unknown,
+                        }
+                        for _, conn in ipairs(conns) do
+                            if type(conn.Function) == "function" then
+                                pcall(task.spawn, conn.Function, fakeMouse, false)
+                            end
+                        end
+                        task.wait(0.14)
+                        if didFlip() then return true end
+
+                        for _, conn in ipairs(conns) do
+                            if type(conn.Function) == "function" then
+                                pcall(task.spawn, conn.Function, fakeTouch, false)
+                            end
+                        end
+                        task.wait(0.14)
+                        if didFlip() then return true end
+                    end
+                end
+            end
+        end
+
+        if type(firesignal) == "function" then
+            local sigNames = { "Activated", "MouseButton1Click", "MouseButton1Down" }
+            for _, target in ipairs(w.targets) do
+                if target:IsA("GuiButton") then
+                    for _, sigName in ipairs(sigNames) do
+                        pcall(function() firesignal(target[sigName]) end)
+                        task.wait(0.14)
+                        if didFlip() then return true end
+                    end
+                end
+            end
+        end
+
+        if VirtualInputManager then
+            local clickBox = w.track or w.targets[1]
+            if clickBox and clickBox.AbsoluteSize.X > 0 then
+                local inset = GuiService:GetGuiInset()
+                local cx = clickBox.AbsolutePosition.X + (clickBox.AbsoluteSize.X * 0.5)
+                local cyWithInset = clickBox.AbsolutePosition.Y + (clickBox.AbsoluteSize.Y * 0.5) + inset.Y
+
+                VirtualInputManager:SendMouseButtonEvent(cx, cyWithInset, 0, true, game, 1)
+                task.wait(0.04)
+                VirtualInputManager:SendMouseButtonEvent(cx, cyWithInset, 0, false, game, 1)
+                task.wait(0.14)
+                if didFlip() then return true end
+
+                local cyRaw = clickBox.AbsolutePosition.Y + (clickBox.AbsoluteSize.Y * 0.5)
+                VirtualInputManager:SendMouseButtonEvent(cx, cyRaw, 0, true, game, 1)
+                task.wait(0.04)
+                VirtualInputManager:SendMouseButtonEvent(cx, cyRaw, 0, false, game, 1)
+                task.wait(0.14)
+                if didFlip() then return true end
+            end
+        end
+
+        return false
+    end)
+
+    lastSlowToggleClock = os.clock()
+    isTogglingSlowMode = false
+    return ok and result or false
 end
 
--- Event Listener: Begitu player mulai Hold E (ambil egg/cage), langsung matikan Slow Mode!
 local isHoldingStealPrompt = false
 
 ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt, player)
     if player == LocalPlayer and Settings.SlowModeNearEgg then
         isHoldingStealPrompt = true
-        setSlowMode(false)
+        task.spawn(setSlowMode, false, true)
     end
 end)
 
 ProximityPromptService.PromptButtonHoldEnded:Connect(function(prompt, player)
     if player == LocalPlayer then
-        task.delay(0.5, function()
+        task.delay(0.4, function()
             isHoldingStealPrompt = false
         end)
     end
@@ -331,7 +550,7 @@ end)
 
 ProximityPromptService.PromptTriggered:Connect(function(prompt, player)
     if player == LocalPlayer and Settings.SlowModeNearEgg then
-        setSlowMode(false)
+        task.spawn(setSlowMode, false, true)
     end
 end)
 
@@ -340,11 +559,10 @@ local safeZoneEnterTime = nil
 local isGoingToSteal = false
 
 task.spawn(function()
-    while task.wait(0.15) do
+    while task.wait(0.12) do
         local inBase = isInSafeZone()
         local carrying = isCarryingCage()
 
-        -- 1. Logika Slow Mode saat di Base / Safe Zone (Deteksi 2 Detik)
         if inBase then
             if not safeZoneEnterTime then
                 safeZoneEnterTime = os.clock()
@@ -353,30 +571,25 @@ task.spawn(function()
             safeZoneEnterTime = nil
         end
 
-        -- Jika sedang mau berangkat Steal Egg keluar base -> Matikan Slow Mode!
-        if isGoingToSteal and inBase then
-            if Settings.SlowModeInBase or Settings.SlowModeNearEgg then
+        if isHoldingStealPrompt or carrying then
+            if Settings.SlowModeNearEgg or Settings.SlowModeInBase then
                 setSlowMode(false)
             end
-        -- Jika berada di Safe Zone >= 2 detik dan tidak sedang mau berangkat steal -> Aktifkan Slow Mode!
-        elseif Settings.SlowModeInBase and inBase and safeZoneEnterTime and (os.clock() - safeZoneEnterTime >= 2.0) then
-            setSlowMode(true)
-        -- 2. Logika Slow Mode saat di luar Base (Mendekati Egg vs Kabur Bawa Egg)
-        elseif not inBase and Settings.SlowModeNearEgg then
-            -- Jika sedang Hold E atau sudah membawa Cage -> Matikan Slow Mode agar tidak kena monster!
-            if isHoldingStealPrompt or carrying then
-                setSlowMode(false)
-            else
-                -- Cek jarak ke Egg terdekat (0 = Default 28 studs)
-                local targetDist = getEffectiveEggDist()
-                local nearestEntry, dist = getNearestCage()
-                if nearestEntry and dist <= targetDist then
-                    -- Sudah dekat dengan Egg -> Aktifkan Slow Mode agar tidak terpeleset (sliding)!
-                    setSlowMode(true)
-                elseif dist > (targetDist + 8) then
-                    -- Masih jauh dari Egg -> Pastikan Slow Mode mati agar lari kencang
+        elseif inBase then
+            if isGoingToSteal then
+                if Settings.SlowModeInBase or Settings.SlowModeNearEgg then
                     setSlowMode(false)
                 end
+            elseif Settings.SlowModeInBase and safeZoneEnterTime and (os.clock() - safeZoneEnterTime >= 2.0) then
+                setSlowMode(true)
+            end
+        elseif not inBase and Settings.SlowModeNearEgg then
+            local targetDist = getEffectiveEggDist()
+            local nearestEntry, dist = getNearestCage()
+            if nearestEntry and dist <= targetDist then
+                setSlowMode(true)
+            elseif dist > (targetDist + 8) then
+                setSlowMode(false)
             end
         end
     end
@@ -384,20 +597,32 @@ end)
 
 -- Berjalan kaki secara natural menggunakan Humanoid:MoveTo (tanpa teleport)
 local function walkTo(targetPos, stopDist, checkActiveFn)
-    stopDist = stopDist or 5
+    stopDist = stopDist or 6
     if not Humanoid or not RootPart then return false end
     local startTime = os.clock()
     while (RootPart.Position - targetPos).Magnitude > stopDist do
         if checkActiveFn and not checkActiveFn() then return false end
         if not Humanoid or Humanoid.Health <= 0 then return false end
-        if os.clock() - startTime > 30 then return false end
+        if os.clock() - startTime > 35 then return false end
         Humanoid:MoveTo(targetPos)
-        task.wait(0.2)
+        task.wait(0.15)
     end
     return true
 end
 
 -- ================= LOOPS =================
+
+if TapBoostRemote then
+    TapBoostRemote.OnClientEvent:Connect(function()
+        if Settings.AutoTapBoost and LocalPlayer:GetAttribute("OnTreadmill") then
+            task.delay(0.35 + math.random() * 0.4, function()
+                if Settings.AutoTapBoost and LocalPlayer:GetAttribute("OnTreadmill") then
+                    pcall(function() TapBoostRemote:FireServer() end)
+                end
+            end)
+        end
+    end)
+end
 
 -- 1. Claims & Best Pets
 task.spawn(function()
@@ -430,97 +655,89 @@ task.spawn(function()
                 if EquipTrailRemote then EquipTrailRemote:FireServer() end
             end)
         end
+        if Settings.AutoUpgradeTreadmill and UpgradeTreadmill then
+            pcall(function() UpgradeTreadmill:FireServer() end)
+        end
     end
 end)
 
--- 3. Cages Loop
+-- 3. Main Farm Loop (Place Carried Cage -> Open Ready Cages -> Steal Cage -> Train)
 task.spawn(function()
-    while task.wait(1.5) do
-        local myPlot = getMyPlot()
-        if myPlot then
-            local stalls = myPlot:FindFirstChild("Stalls") or (myPlot:FindFirstChild("Barn") and myPlot.Barn:FindFirstChild("Stalls"))
-            if stalls then
-                for _, stall in ipairs(stalls:GetChildren()) do
-                    if Settings.AutoPlaceCage and PlaceCageRemote then
-                        pcall(function() PlaceCageRemote:FireServer(stall) end)
-                    end
-                    if Settings.AutoOpenCage and OpenCageRemote then
-                        if stall:FindFirstChild("Cage") then
-                            pcall(function() OpenCageRemote:FireServer(stall) end)
+    while task.wait(0.3) do
+        -- A. Jika sedang membawa Cage dan AutoPlaceCage aktif, taruh ke stall kosong
+        if Settings.AutoPlaceCage and isCarryingCage() and PlaceCageRemote then
+            local freeStall = getFreeStall()
+            if freeStall and freeStall.part then
+                isGoingToSteal = false
+                if walkTo(freeStall.part.Position, 7, function() return Settings.AutoPlaceCage and isCarryingCage() end) then
+                    equipCarriedCageTool()
+                    pcall(function() PlaceCageRemote:FireServer(freeStall.part.Name) end)
+                    task.wait(0.4)
+                end
+            end
+        end
+
+        -- B. Jika ada Cage di plot yang timernya sudah selesai (ReadyAt <= ServerTimeNow), buka otomatis
+        if Settings.AutoOpenCage and OpenCageRemote then
+            local cagesFolder = LocalPlayer:FindFirstChild("Cages")
+            if cagesFolder then
+                local ownedStalls = getOwnedStalls()
+                local stallByIdx = {}
+                for _, s in ipairs(ownedStalls) do stallByIdx[s.index] = s end
+
+                for _, cage in ipairs(cagesFolder:GetChildren()) do
+                    local stallIdx = tonumber(cage:GetAttribute("Stall"))
+                    local opening = cage:GetAttribute("Opening")
+                    local readyAt = tonumber(cage:GetAttribute("ReadyAt")) or 0
+                    if stallIdx and not opening and (readyAt - workspace:GetServerTimeNow() <= 0) then
+                        local stallEntry = stallByIdx[stallIdx]
+                        if stallEntry and stallEntry.part then
+                            if walkTo(stallEntry.part.Position, 7, function() return Settings.AutoOpenCage end) then
+                                pcall(function() OpenCageRemote:FireServer(cage.Name) end)
+                                task.wait(0.4)
+                            end
                         end
                     end
                 end
             end
         end
-    end
-end)
 
--- 4. Train (Treadmill) Loop
-task.spawn(function()
-    while task.wait(1) do
-        if Settings.AutoTrain and not Settings.AutoSteal then
-            local myPlot = getMyPlot()
-            if myPlot then
-                local treadmill = myPlot:FindFirstChild("Treadmill") or myPlot:FindFirstChildWhichIsA("Model", true)
-                local targetPart = treadmill and (treadmill:FindFirstChild("HumanoidRootPart") or treadmill:FindFirstChild("Base") or treadmill.PrimaryPart)
-                if targetPart and (RootPart.Position - targetPart.Position).Magnitude > 6 then
-                    walkTo(targetPart.Position, 5, function()
-                        return Settings.AutoTrain and not Settings.AutoSteal
-                    end)
-                end
-            end
-            if Settings.AutoUpgradeTreadmill and UpgradeTreadmill then
-                pcall(function() UpgradeTreadmill:FireServer() end)
-            end
-        end
-    end
-end)
-
--- 5. Steal Cage Loop (Walks to cage, activates Slow Mode near cage, turns off Slow Mode on Hold E, walks home)
-task.spawn(function()
-    while task.wait(0.5) do
-        if Settings.AutoSteal then
-            local targetEntry = getNearestCage()
-            if targetEntry then
-                local part = targetEntry.root
-                local prompt = targetEntry.prompt
-                local targetCage = targetEntry.model
-
-                -- Tandai bahwa player sedang berangkat mencuri egg (agar Slow Mode di base langsung dimatikan)
+        -- C. Auto Steal Cage
+        if Settings.AutoSteal and not isCarryingCage() and RootPart and Humanoid and Humanoid.Health > 0 then
+            local entry = getNearestCage()
+            if entry and entry.root and entry.prompt then
                 isGoingToSteal = true
-                if Settings.SlowModeInBase or Settings.SlowModeNearEgg then
+                if isInSafeZone() and (Settings.SlowModeInBase or Settings.SlowModeNearEgg) then
                     setSlowMode(false)
                 end
 
-                local reached = walkTo(part.Position, 5.5, function()
-                    return Settings.AutoSteal and targetCage.Parent ~= nil and prompt.Enabled
+                local reached = walkTo(entry.root.Position, 6, function()
+                    return Settings.AutoSteal and entry.prompt.Parent ~= nil and entry.prompt.Enabled and not isCarryingCage()
                 end)
 
                 isGoingToSteal = false
 
-                if reached and prompt.Parent and prompt.Enabled then
-                    -- Begitu mulai Hold E / memicu StealPrompt, langsung matikan Slow Mode!
+                if reached and entry.prompt.Parent and entry.prompt.Enabled then
                     isHoldingStealPrompt = true
                     if Settings.SlowModeNearEgg then
-                        setSlowMode(false)
+                        task.spawn(setSlowMode, false, true)
                     end
 
-                    if prompt.HoldDuration and prompt.HoldDuration > 0 then
+                    if entry.prompt.HoldDuration and entry.prompt.HoldDuration > 0 then
                         pcall(function()
-                            prompt:InputHoldBegin()
-                            task.wait(prompt.HoldDuration + 0.1)
-                            prompt:InputHoldEnd()
+                            entry.prompt:InputHoldBegin()
+                            task.wait(entry.prompt.HoldDuration + 0.1)
+                            entry.prompt:InputHoldEnd()
                         end)
                     elseif fireproximityprompt then
-                        pcall(fireproximityprompt, prompt)
+                        pcall(fireproximityprompt, entry.prompt)
                     end
                     isHoldingStealPrompt = false
 
                     task.wait(0.2)
                     local myPlot = getMyPlot()
                     if myPlot then
-                        local homePos = myPlot:GetPivot().Position
-                        walkTo(homePos, 8, function()
+                        walkTo(myPlot:GetPivot().Position, 10, function()
                             return Settings.AutoSteal
                         end)
                     end
@@ -530,6 +747,18 @@ task.spawn(function()
             end
         else
             isGoingToSteal = false
+        end
+
+        -- D. Auto Train di Treadmill saat sedang idle
+        if Settings.AutoTrain and not Settings.AutoSteal and not isCarryingCage() then
+            if not LocalPlayer:GetAttribute("OnTreadmill") then
+                local myPlot = getMyPlot()
+                local tm = myPlot and myPlot:FindFirstChild("Treadmill", true)
+                if tm then
+                    local tmPos = tm:GetPivot().Position
+                    walkTo(tmPos, 5, function() return Settings.AutoTrain and not LocalPlayer:GetAttribute("OnTreadmill") end)
+                end
+            end
         end
     end
 end)
@@ -544,116 +773,142 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- ================= GUI TABS =================
-local FarmTab = Window:CreateTab("Auto Farm", "crosshair")
+-- ================= GUI TABS (AirFlow UI) =================
+local FarmTab = Window:CreateTab({ Name = "Farm", Icon = "package" })
 
-FarmTab:CreateSection("Auto Slow Mode (Anti-Sliding)")
+FarmTab:CreateSection("Slow Mode (Anti-Sliding)")
 FarmTab:CreateToggle({
     Name = "Auto Slow Mode Near Egg",
-    CurrentValue = true,
+    Desc = "Otomatis ON Slow Mode saat dekat Egg agar tidak sliding, dan OFF saat mulai Hold E.",
+    Default = true,
+    Flag = "SAPSlowNearEgg",
     Callback = function(v) Settings.SlowModeNearEgg = v end,
 })
 FarmTab:CreateSlider({
     Name = "Slow Mode Egg Distance (0 = Default 28)",
-    Range = {0, 100},
-    Increment = 1,
-    CurrentValue = 0,
+    Desc = "0 = Default (28 studs). Geser di atas 0 atau klik angkanya untuk custom jarak studs.",
+    Min = 0,
+    Max = 100,
+    Step = 1,
+    Default = 0,
+    Suffix = " studs",
+    Flag = "SAPSlowEggDist",
     Callback = function(v)
         Settings.SlowModeEggDist = tonumber(v) or 0
     end,
 })
-if FarmTab.CreateInput then
-    FarmTab:CreateInput({
-        Name = "Custom Egg Studs (0 = Default)",
-        PlaceholderText = "0 = Default (28 studs)",
-        RemoveTextAfterFocusLost = false,
-        Callback = function(text)
-            local num = tonumber(text)
-            if num and num >= 0 then
-                Settings.SlowModeEggDist = num
-            else
-                Settings.SlowModeEggDist = 0
-            end
-        end,
-    })
-end
+FarmTab:CreateInput({
+    Name = "Custom Egg Studs (0 = Default)",
+    Desc = "Ketik 0 untuk Default (28 studs), atau ketik angka custom studs.",
+    Placeholder = "0 = Default (28 studs)",
+    Default = "0",
+    Flag = "SAPSlowEggDistInput",
+    Callback = function(text)
+        local num = tonumber(text)
+        if num and num >= 0 then
+            Settings.SlowModeEggDist = num
+        else
+            Settings.SlowModeEggDist = 0
+        end
+    end,
+})
 FarmTab:CreateToggle({
     Name = "Auto Slow Mode In Base (2s Safe Zone)",
-    CurrentValue = true,
+    Desc = "Otomatis ON Slow Mode setelah 2 detik di Safe Zone/Base, dan OFF saat berangkat steal.",
+    Default = true,
+    Flag = "SAPSlowInBase",
     Callback = function(v) Settings.SlowModeInBase = v end,
+})
+FarmTab:CreateButton({
+    Name = "Test Klik Slow Mode Sekarang",
+    Desc = "Klik untuk mengetes apakah tombol Slow Mode game berhasil dipencet otomatis.",
+    Callback = function()
+        task.spawn(function()
+            setSlowMode(not isSlowModeActive(), true)
+        end)
+    end,
 })
 
 FarmTab:CreateSection("Auto Steal & Cages")
 FarmTab:CreateToggle({
     Name = "Auto Steal Cage",
-    CurrentValue = false,
+    Desc = "Berjalan natural ke Cage, mencurinya, dan membawanya pulang ke plot.",
+    Default = false,
+    Flag = "SAPAutoSteal",
     Callback = function(v) Settings.AutoSteal = v end,
 })
 FarmTab:CreateToggle({
     Name = "Auto Place Cage",
-    CurrentValue = true,
+    Desc = "Menaruh Cage yang dibawa ke stall kosong di plot.",
+    Default = true,
+    Flag = "SAPAutoPlace",
     Callback = function(v) Settings.AutoPlaceCage = v end,
 })
 FarmTab:CreateToggle({
     Name = "Auto Open Cage",
-    CurrentValue = true,
+    Desc = "Membuka Cage di stall segera setelah timernya selesai.",
+    Default = true,
+    Flag = "SAPAutoOpen",
     Callback = function(v) Settings.AutoOpenCage = v end,
 })
 
 FarmTab:CreateSection("Training (Treadmill)")
 FarmTab:CreateToggle({
     Name = "Auto Train (Treadmill)",
-    CurrentValue = false,
+    Default = false,
+    Flag = "SAPAutoTrain",
     Callback = function(v) Settings.AutoTrain = v end,
 })
 FarmTab:CreateToggle({
     Name = "Auto Upgrade Treadmill",
-    CurrentValue = true,
+    Default = true,
+    Flag = "SAPAutoTreadmill",
     Callback = function(v) Settings.AutoUpgradeTreadmill = v end,
 })
 FarmTab:CreateToggle({
     Name = "Auto Tap Boost",
-    CurrentValue = true,
+    Default = true,
+    Flag = "SAPAutoTapBoost",
     Callback = function(v) Settings.AutoTapBoost = v end,
 })
 
-local UpgradeTab = Window:CreateTab("Auto Upgrades", "arrow-up-circle")
+local UpgradeTab = Window:CreateTab({ Name = "Upgrades", Icon = "sparkles" })
 UpgradeTab:CreateSection("Auto Buy & Claims")
 UpgradeTab:CreateToggle({
-    Name = "Auto Buy Plot Stalls (Every 10s)",
-    CurrentValue = true,
+    Name = "Auto Buy Plot Stalls",
+    Default = true,
+    Flag = "SAPAutoStall",
     Callback = function(v) Settings.AutoBuyStalls = v end,
 })
 UpgradeTab:CreateToggle({
     Name = "Auto Buy Best Trail",
-    CurrentValue = true,
+    Default = true,
+    Flag = "SAPAutoTrail",
     Callback = function(v) Settings.AutoTrail = v end,
 })
 UpgradeTab:CreateToggle({
     Name = "Auto Claim Daily & Index Rewards",
-    CurrentValue = true,
+    Default = true,
+    Flag = "SAPAutoClaims",
     Callback = function(v) Settings.AutoClaimRewards = v end,
 })
 UpgradeTab:CreateToggle({
     Name = "Auto Equip Best Pets",
-    CurrentValue = true,
+    Default = true,
+    Flag = "SAPAutoEquipBest",
     Callback = function(v) Settings.AutoEquipBest = v end,
 })
 UpgradeTab:CreateToggle({
     Name = "Auto Rebirth",
-    CurrentValue = false,
+    Default = false,
+    Flag = "SAPAutoRebirth",
     Callback = function(v) Settings.AutoRebirth = v end,
 })
 
-local PlayerTab = Window:CreateTab("Player Mods", "user")
+local PlayerTab = Window:CreateTab({ Name = "Player", Icon = "settings" })
 PlayerTab:CreateToggle({
     Name = "Noclip",
-    CurrentValue = false,
+    Default = false,
+    Flag = "SAPNoclip",
     Callback = function(v) Settings.Noclip = v end,
-})
-
-Ui:Notify({
-    Title = "Steall Hub Loaded",
-    Content = "Fitur Auto Slow Mode (Anti-Sliding) Aktif!",
-    Duration = 5,
 })
